@@ -1,0 +1,13 @@
+{
+    "name": "oy/crud",
+    "description": "this package has been developed for testing purposes.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Oğuzhan Yılmaz",
+            "email": "45510538+1oguzhanyilmaz@users.noreply.github.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
