@@ -2,6 +2,10 @@
     "name": "oy/crud",
     "description": "this package has been developed for testing purposes.",
     "license": "MIT",
+    "keywords": [
+        "laravel",
+        "crud"
+    ],
     "authors": [
         {
             "name": "Oğuzhan Yılmaz",
@@ -9,5 +13,17 @@
         }
     ],
     "minimum-stability": "dev",
-    "require": {}
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Oy\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Oy\\CrudServiceProvider"
+            ]
+        }
+    }
 }
