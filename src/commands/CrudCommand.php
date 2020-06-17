@@ -31,16 +31,21 @@ class CrudCommand extends Command
             $fillable_array = explode(',', $fields);
 
             foreach ($fillable_array as $value) {
-				$data[] = preg_replace("/(.*?):(.*)/", "$1", trim($value));	
+				$data[] = preg_replace("/(.*?):(.*)/", "$1", trim($value));
             }
 
+            $commaSeparetedStr = implode("', '", $data);
+            $fillable = "['";
+            $fillable .= $commaSeparetedStr;
+            $fillable .= "']";
+
             $this->call('crud:controller', ['name' => $name . 'Controller', '--crud-name' => $name]);
-            $this->call('crud:model', ['name' => str_plural($name), '--fillable' => $fillable]);
-            $this->call('crud:migration', ['name' => str_plural(strtolower($name)), '--schema' => $fields]);
-            $this->call('crud:view', ['name' => $name, '--fields' => $fields]);            
+//            $this->call('crud:model', ['name' => Str::plural($name), '--fillable' => $fillable]);
+//            $this->call('crud:migration', ['name' => Str::plural(strtolower($name)), '--schema' => $fields]);
+//            $this->call('crud:view', ['name' => $name, '--fields' => $fields]);
         }else {
            $this->call('make:controller', ['name' => $name.'Controller']);
-           $this->call('make:model', ['name' => $name]);
+//           $this->call('make:model', ['name' => $name]);
         }
 
         // migrate

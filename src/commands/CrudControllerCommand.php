@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use Illuminate\Console\GeneratorCommand;
+use Illuminate\Support\Str;
 
 class CrudControllerCommand extends GeneratorCommand
 {
@@ -21,15 +22,15 @@ class CrudControllerCommand extends GeneratorCommand
     protected function getDefaultNamespace($rootNamespace){
 		return $rootNamespace.'\Http\Controllers';
     }
-    
+
     protected function buildClass($name){
         $stub = $this->files->get($this->getStub());
 
 		$crudName = strtolower($this->option('crud-name'));
 		$crudNameCap = ucwords($crudName);
-		$crudNamePlural = str_plural($crudName);
-		$crudNamePluralCap = str_plural($crudNameCap);
-        $crudNameSingular = str_singular($crudName);
+		$crudNamePlural = Str::plural($crudName);
+		$crudNamePluralCap = Str::plural($crudNameCap);
+        $crudNameSingular = Str::singular($crudName);
 
         return $this->replaceNamespace($stub, $name)
                     ->replaceCrudName($stub, $crudName)
@@ -38,7 +39,7 @@ class CrudControllerCommand extends GeneratorCommand
                     ->replaceCrudNamePluralCap($stub, $crudNamePluralCap)
                     ->replaceCrudNameSingular($stub, $crudNameSingular)
                     ->replaceClass($stub, $name);
-    }	
+    }
 
     protected function replaceCrudName(&$stub, $crudName){
         $stub = str_replace(
@@ -62,7 +63,7 @@ class CrudControllerCommand extends GeneratorCommand
         );
 
         return $this;
-    } 
+    }
 
     protected function replaceCrudNamePluralCap(&$stub, $crudNamePluralCap){
         $stub = str_replace(
@@ -70,7 +71,7 @@ class CrudControllerCommand extends GeneratorCommand
         );
 
         return $this;
-    }   
+    }
 
     protected function replaceCrudNameSingular(&$stub, $crudNameSingular){
         $stub = str_replace(
