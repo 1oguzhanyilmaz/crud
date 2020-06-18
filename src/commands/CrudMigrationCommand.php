@@ -15,21 +15,23 @@ class CrudMigrationCommand extends GeneratorCommand
     protected $type = 'Migration';
 
     protected function getStub(){
-		return __DIR__.'/stubs/migration.stub';
+		return dirname(__DIR__).'/stubs/migration.stub';
 	}
 
     protected function getPath($name){
-        $name = str_replace($this->getAppNamespace(), '', $name);
+        $name = str_replace($this->laravel->getNamespace(), '', $name);
         $datePrefix = date('Y_m_d_His');
-        return $this->laravel['path'].'/../database/migrations/'.$datePrefix.'_create_'.$name.'_table.php';
+        // dd(database_path());
+        return database_path('/migrations/') . $datePrefix . '_create_' . $name . '_table.php';
     }
 
     protected function buildClass($name){
-        $stub = $this->files->get($this->getStub());  
+        $stub = $this->files->get($this->getStub());
         $tableName = strtolower($this->argument('name'));
         $className = 'Create' . ucwords($tableName) . 'Table';
-        
+
         $schema = $this->option('schema');
+        // fields = ['title:string','content:text']
         $fields = explode(',', $schema);
 
         $data = array();
@@ -42,7 +44,7 @@ class CrudMigrationCommand extends GeneratorCommand
         }
 
         $schemaFields = '';
-        foreach ($data as $item) { 
+        foreach ($data as $item) {
             if( $item['type']=='string' ) {
                 $schemaFields .= "\$table->string('".$item['name']."');";
             } elseif( $item['type']=='text' ) {
@@ -50,16 +52,16 @@ class CrudMigrationCommand extends GeneratorCommand
             } elseif( $item['type']=='integer' ) {
                 $schemaFields .= "\$table->integer('".$item['name']."');";
             } elseif( $item['type']=='date' ) {
-                $schemaFields .= "\$table->date('".$item['name']."');";                                
+                $schemaFields .= "\$table->date('".$item['name']."');";
             } else {
                 $schemaFields .= "\$table->string('".$item['name']."');";
-            }       
-        }  
-        
+            }
+        }
+
         $schemaUp = "
         Schema::create('".$tableName."', function(Blueprint \$table)
         {
-            \$table->increments('id');
+            \$table->id();
             ".$schemaFields."
             \$table->timestamps();
         });
@@ -71,7 +73,7 @@ class CrudMigrationCommand extends GeneratorCommand
                     ->replaceSchemaDown($stub, $schemaDown)
                     ->replaceClass($stub, $className);
     }
-    
+
     protected function replaceSchemaUp(&$stub, $schemaUp){
         $stub = str_replace(
             '{{schema_up}}', $schemaUp, $stub

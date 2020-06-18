@@ -16,7 +16,7 @@ class CrudControllerCommand extends GeneratorCommand
     protected $type = 'Controller';
 
     protected function getStub(){
-		return __DIR__.'/stubs/controller.stub';
+		return dirname(__DIR__).'/stubs/controller.stub';
 	}
 
     protected function getDefaultNamespace($rootNamespace){
@@ -31,6 +31,7 @@ class CrudControllerCommand extends GeneratorCommand
 		$crudNamePlural = Str::plural($crudName);
 		$crudNamePluralCap = Str::plural($crudNameCap);
         $crudNameSingular = Str::singular($crudName);
+
 
         return $this->replaceNamespace($stub, $name)
                     ->replaceCrudName($stub, $crudName)

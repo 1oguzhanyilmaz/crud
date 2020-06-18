@@ -16,12 +16,12 @@ class CrudModelCommand extends GeneratorCommand
     protected $type = 'Model';
 
     protected function getStub(){
-        return __DIR__.'/stubs/model.stub';
+        return dirname(__DIR__).'/stubs/model.stub';
     }
 
     protected function getDefaultNamespace($rootNamespace){
         return $rootNamespace;
-    }    
+    }
 
     protected function buildClass($name){
         $stub = $this->files->get($this->getStub());

@@ -1,0 +1,40 @@
+@extends('app')
+
+@section('content')
+    <div class="container">
+        <div class="row">
+            <div class="col-md-10 col-md-offset-1">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Dashboard</div>
+
+                    <div class="panel-body">
+                        <h1>%%crudNamePlural%%</h1>
+                        <h2><a href="{{ url('/%%crudName%%/create') }}">Create</a></h2>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <tr>
+                                    <th>ID</th><th>Name</th><th>Actions</th>
+                                </tr>
+                                @foreach($%%crudNamePlural%% as $item)
+                                    <tr>
+                                        <td>{{ $item->id }}</td>
+                                        <td><a href="{{ url('/%%crudName%%', $item->id) }}">{{ $item->name }}</a></td>
+                                        <td>
+                                            <form action="{{ url('/%%crudName%%/'.$item->id) }}" method="POST">
+                                                <a class="btn btn-info" href="{{ url('/%%crudName%%/'.$item->id) }}">Show</a>
+                                                <a class="btn btn-primary" href="{{ url('/%%crudName%%/'.$item->id.'/edit') }}">Edit</a>
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-danger">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection

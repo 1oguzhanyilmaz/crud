@@ -1,0 +1,52 @@
+<?php namespace {{namespace}};
+
+use {{rootNamespace}}Http\Requests;
+use {{rootNamespace}}Http\Controllers\Controller;
+
+use {{rootNamespace}}{{crudNamePluralCap}};
+use Illuminate\Http\Request;
+use Carbon\Carbon;
+
+class {{class}} extends Controller {
+    public function index()
+	{
+		${{crudNamePlural}} = {{crudNamePluralCap}}::latest()->get();
+		return view('{{crudName}}.index', compact('{{crudNamePlural}}'));
+	}
+
+	public function create()
+    {
+        return view('{{crudName}}.create');
+    }
+
+    public function store(Request $request)
+    {
+        {{crudNamePluralCap}}::create($request->all());
+        return redirect('{{crudName}}');
+    }
+
+    public function show($id)
+    {
+        ${{crudNameSingular}} = {{crudNamePluralCap}}::findOrFail($id);
+        return view('{{crudName}}.show', compact('{{crudNameSingular}}'));
+    }
+
+    public function edit($id)
+    {
+        ${{crudNameSingular}} = {{crudNamePluralCap}}::findOrFail($id);
+        return view('{{crudName}}.edit', compact('{{crudNameSingular}}'));
+    }
+
+    public function update($id, Request $request)
+    {
+        ${{crudNameSingular}} = {{crudNamePluralCap}}::findOrFail($id);
+        ${{crudNameSingular}}->update($request->all());
+        return redirect('{{crudName}}');
+    }
+
+    public function destroy($id)
+    {
+        {{crudNamePluralCap}}::destroy($id);
+        return redirect('{{crudName}}');
+    }
+}
