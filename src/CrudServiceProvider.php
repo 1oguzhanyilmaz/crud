@@ -9,7 +9,6 @@ class CrudServiceProvider extends ServiceProvider
 
     public function register()
     {
-
         $this->commands(
             'Oy\Commands\CrudCommand',
             'Oy\Commands\CrudControllerCommand',

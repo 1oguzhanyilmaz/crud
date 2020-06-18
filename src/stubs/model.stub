@@ -1,8 +1,9 @@
-<?php namespace {{namespace}};
+<?php
+namespace DummyNamespace;
 
 use Illuminate\Database\Eloquent\Model;
 
-class {{class}} extends Model  {
+class DummyClass extends Model  {
 
     protected $table = '{{table}}';
     protected $fillable = {{fillable}};
