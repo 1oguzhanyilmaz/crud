@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Commands;
+namespace Oy\Commands;
 
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Support\Str;
