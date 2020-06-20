@@ -9,7 +9,8 @@ class CrudMigrationCommand extends GeneratorCommand
 
     protected $signature = 'crud:migration
                                 {name : The name of the migration.}
-                                {--schema= : The name of the schema.}';
+                                {--schema= : The name of the schema.}
+                                {--pk=id : The name of the primary key.}';
 
     protected $description = 'Command Crud Migration description';
     protected $type = 'Migration';
@@ -27,6 +28,7 @@ class CrudMigrationCommand extends GeneratorCommand
 
     protected function buildClass($name){
         $stub = $this->files->get($this->getStub());
+
         $tableName = strtolower($this->argument('name'));
         $className = 'Create' . ucwords($tableName) . 'Table';
 
@@ -45,18 +47,27 @@ class CrudMigrationCommand extends GeneratorCommand
 
         $schemaFields = '';
         foreach ($data as $item) {
-            if( $item['type']=='string' ) {
-                $schemaFields .= "\$table->string('".$item['name']."');";
-            } elseif( $item['type']=='text' ) {
-                $schemaFields .= "\$table->text('".$item['name']."');";
-            } elseif( $item['type']=='integer' ) {
-                $schemaFields .= "\$table->integer('".$item['name']."');";
-            } elseif( $item['type']=='date' ) {
-                $schemaFields .= "\$table->date('".$item['name']."');";
-            } else {
-                $schemaFields .= "\$table->string('".$item['name']."');";
-            }
+            if( $item['type']=='string' ) { $schemaFields .= "\$table->string('".$item['name']."');"; }
+                elseif ($item['type'] == 'char') {$schemaFields .= "\$table->char('" . $item['name'] . "');\n";}
+                elseif ($item['type'] == 'varchar') {$schemaFields .= "\$table->string('" . $item['name'] . "');\n";}
+                elseif ($item['type'] == 'password') {$schemaFields .= "\$table->string('" . $item['name'] . "');\n";}
+                elseif ($item['type'] == 'email') {$schemaFields .= "\$table->string('" . $item['name'] . "');\n";}
+                elseif ($item['type'] == 'date') {$schemaFields .= "\$table->date('" . $item['name'] . "');\n";}
+                elseif ($item['type'] == 'datetime') {$schemaFields .= "\$table->datetime('" . $item['name'] . "');\n";}
+                elseif ($item['type'] == 'time') {$schemaFields .= "\$table->time('" . $item['name'] . "');\n";}
+                elseif ($item['type'] == 'timestamp') {$schemaFields .= "\$table->timestamp('" . $item['name'] . "');\n";}
+                elseif( $item['type'] == 'text' ) {$schemaFields .= "\$table->text('".$item['name']."');\n";}
+                elseif( $item['type'] == 'json' ) {$schemaFields .= "\$table->json('".$item['name']."');\n";}
+                elseif( $item['type'] == 'integer' ) {$schemaFields .= "\$table->integer('".$item['name']."');";}
+                elseif( $item['type'] == 'number' ) {$schemaFields .= "\$table->integer('".$item['name']."');";}
+                elseif( $item['type'] == 'bigint' ) {$schemaFields .= "\$table->bigInteger('".$item['name']."');";}
+                elseif( $item['type'] == 'tinyint' ) {$schemaFields .= "\$table->tinyInteger('".$item['name']."');";}
+                elseif( $item['type'] == 'boolean' ) {$schemaFields .= "\$table->boolean('".$item['name']."');";}
+                elseif( $item['type'] == 'date' ) {$schemaFields .= "\$table->date('".$item['name']."');";}
+                else {$schemaFields .= "\$table->string('".$item['name']."');";}
         }
+
+        // $primaryKey = strtolower($this->option('pk'));
 
         $schemaUp = "
         Schema::create('".$tableName."', function(Blueprint \$table)

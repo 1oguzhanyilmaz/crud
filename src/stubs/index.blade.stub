@@ -3,28 +3,33 @@
 @section('content')
     <div class="">
         <h1>%%crudNamePluralCap%%</h1>
-        <h2><a href="{{ url('/%%crudName%%/create') }}">Create</a></h2>
+        <h2><a href="{{ route('%%crudName%%.create') }}" class="btn btn-primary pull-right btn-sm">Add New %%crudNameCap%%</a></h2>
         <div class="table-responsive">
-            <table class="table">
-                <tr>
-                    <th>ID</th><th>Name</th><th>Actions</th>
-                </tr>
-                @foreach($%%crudNamePlural%% as $item)
+            <table class="table table-bordered table-hover">
+                <thead>
                     <tr>
-                        <td>{{ $item->id }}</td>
-                        <td><a href="{{ url('/%%crudName%%', $item->id) }}">{{ $item->name }}</a></td>
-                        <td>
-                            <form action="{{ url('/%%crudName%%/'.$item->id) }}" method="POST">
-                                <a class="btn btn-info" href="{{ url('/%%crudName%%/'.$item->id) }}">Show</a>
-                                <a class="btn btn-primary" href="{{ url('/%%crudName%%/'.$item->id.'/edit') }}">Edit</a>
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger">Delete</button>
-                            </form>
-                        </td>
+                        <th>ID</th>%%formHeadingHtml%%<th>Actions</th>
                     </tr>
-                @endforeach
+                </thead>
+                <tbody>
+                    @foreach($%%crudNamePlural%% as $item)
+                        <tr>
+                            <td>{{ $item->id }}</td>
+                            %%formBodyHtml%%
+                            <td>
+                                <form action="{{ route('%%crudName%%.destroy', $item->id) }}" method="POST">
+                                    <a class="btn btn-info btn-xs" href="{{ route('%%crudName%%.show', $item->id) }}">Show</a>
+                                    <a class="btn btn-primary btn-xs" href="{{ route('%%crudName%%.edit', $item->id) }}">Edit</a>
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-xs">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
             </table>
+            <div class="pagination"> {!! $%%crudNamePlural%%->render() !!} </div>
         </div>
     </div>
 @endsection

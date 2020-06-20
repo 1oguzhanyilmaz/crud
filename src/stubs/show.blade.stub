@@ -7,17 +7,17 @@
         <div class="panel-body">
             <h1>%%crudNameSingularCap%%</h1>
             <div class="table-responsive">
-                <table class="table">
-                    <tr>
-                        <td>ID</td>
-                        <td>{{ $%%crudNameSingular%%->id }}</td>
-                    </tr>
-                    <tr>
-                        <td>Other</td>
-                        <td>
-                            %%formFieldsShow%%
-                        </td>
-                    </tr>
+                <table class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th> %%formHeadingHtml%%
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ $%%crudNameSingular%%->id }}</td> %%formBodyHtmlForShowView%%
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </div>

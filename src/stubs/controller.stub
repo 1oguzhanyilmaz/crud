@@ -4,50 +4,59 @@ namespace DummyNamespace;
 use DummyRootNamespaceHttp\Requests;
 use DummyRootNamespaceHttp\Controllers\Controller;
 
-use DummyRootNamespace{{crudNamePluralCap}};
+use DummyRootNamespace{{crudNameCap}};
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Session;
 use Carbon\Carbon;
 
 class DummyClass extends Controller {
     public function index()
 	{
-		${{crudNamePlural}} = {{crudNamePluralCap}}::latest()->get();
-		return view('{{crudName}}.index', compact('{{crudNamePlural}}'));
+		${{crudNamePlural}} = {{crudNameCap}}::paginate(15);
+		return view('{{viewPath}}{{crudName}}.index', compact('{{crudNamePlural}}'));
 	}
 
 	public function create()
     {
-        return view('{{crudName}}.create');
+        return view('{{viewPath}}{{crudName}}.create');
     }
 
     public function store(Request $request)
     {
-        {{crudNamePluralCap}}::create($request->all());
+        {{crudNameCap}}::create($request->all());
+
+        Session::flash('flash_message', '{{crudNameCap}} successfully added!');
+
         return redirect('{{crudName}}');
     }
 
     public function show($id)
     {
-        ${{crudNameSingular}} = {{crudNamePluralCap}}::findOrFail($id);
-        return view('{{crudName}}.show', compact('{{crudNameSingular}}'));
+        ${{crudNameSingular}} = {{crudNameCap}}::findOrFail($id);
+        return view('{{viewPath}}{{crudName}}.show', compact('{{crudNameSingular}}'));
     }
 
     public function edit($id)
     {
-        ${{crudNameSingular}} = {{crudNamePluralCap}}::findOrFail($id);
-        return view('{{crudName}}.edit', compact('{{crudNameSingular}}'));
+        ${{crudNameSingular}} = {{crudNameCap}}::findOrFail($id);
+        return view('{{viewPath}}{{crudName}}.edit', compact('{{crudNameSingular}}'));
     }
 
     public function update($id, Request $request)
     {
-        ${{crudNameSingular}} = {{crudNamePluralCap}}::findOrFail($id);
+        ${{crudNameSingular}} = {{crudNameCap}}::findOrFail($id);
         ${{crudNameSingular}}->update($request->all());
+
+        Session::flash('flash_message', '{{crudNameCap}} successfully updated!');
+
         return redirect('{{crudName}}');
     }
 
     public function destroy($id)
     {
-        {{crudNamePluralCap}}::destroy($id);
+        {{crudNameCap}}::destroy($id);
+        Session::flash('flash_message', '{{crudNameCap}} successfully deleted!');
+
         return redirect('{{crudName}}');
     }
 }

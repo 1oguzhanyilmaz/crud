@@ -3,6 +3,7 @@
 namespace Oy\Commands;
 
 use Illuminate\Console\GeneratorCommand;
+use Symfony\Component\Console\Input\InputOption;
 
 class CrudModelCommand extends GeneratorCommand
 {
@@ -26,7 +27,7 @@ class CrudModelCommand extends GeneratorCommand
     protected function buildClass($name){
         $stub = $this->files->get($this->getStub());
 
-        $table = $this->option('table')? : strtolower($this->getNameInput());
+        $table = $this->option('table')? : strtolower($this->argument('name'));
         $fillable = $this->option('fillable');
 
         return $this->replaceNamespace($stub, $name)
@@ -49,6 +50,14 @@ class CrudModelCommand extends GeneratorCommand
         );
 
         return $this;
+    }
+
+    protected function getOptions()
+    {
+        return [
+            ['table', null, InputOption::VALUE_OPTIONAL, 'The table name.', null],
+            ['fillable', null, InputOption::VALUE_OPTIONAL, 'The fillable columns.', null],
+        ];
     }
 
 }

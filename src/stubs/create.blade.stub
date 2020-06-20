@@ -5,10 +5,10 @@
         <h1>Create a new %%crudNameSingularCap%%</h1>
         <hr/>
 
-        <form method="post" action="{{ url('/%%crudName%%') }}">
+        <form method="post" action="{{ route('%%crudName%%.store') }}">
             @csrf
 
-            %%formFields%%
+            %%formFieldsHtml%%
 
             <div class="form-group">
                 <button type="submit" class="btn btn-primary-outline">Create</button>
