@@ -23,6 +23,7 @@ class DummyClass extends Controller {
 
     public function store(Request $request)
     {
+        {{validationRules}}
         {{crudNameCap}}::create($request->all());
 
         Session::flash('flash_message', '{{crudNameCap}} successfully added!');
@@ -44,6 +45,7 @@ class DummyClass extends Controller {
 
     public function update($id, Request $request)
     {
+        {{validationRules}}
         ${{crudNameSingular}} = {{crudNameCap}}::findOrFail($id);
         ${{crudNameSingular}}->update($request->all());
 

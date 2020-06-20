@@ -16,6 +16,25 @@ class CrudViewCommand extends Command
 
     protected $description = 'Command Crud View description';
 
+    // form type
+    protected $typeLookup = [
+        'string'     => 'text',
+        'char'       => 'text',
+        'varchar'    => 'text',
+        'text'       => 'textarea',
+        'json'       => 'textarea',
+        'password'   => 'password',
+        'email'      => 'email',
+        'number'     => 'number',
+        'integer'    => 'number',
+        'bigint'     => 'number',
+        'tinyint'    => 'number',
+        'date'       => 'date',
+        'datetime'   => 'date',
+        'time'       => 'date',
+        'boolean'    => 'radio',
+    ];
+
     public function handle(){
         $crudName = strtolower($this->argument('name'));
         $crudNameCap = ucwords($crudName);
@@ -47,8 +66,12 @@ class CrudViewCommand extends Command
             $itemArray = explode(':', $item);
             $formFields[$x]['name'] = trim($itemArray[0]);
             $formFields[$x]['type'] = trim($itemArray[1]);
+            $formFields[$x]['required'] = (isset($itemArray[2]) && trim($itemArray[2]) == 'required')
+                                                ? true
+                                                : false;
             $x++;
         }
+
 //        $formFields = [
 //            [0] => [
 //                'name' => 'title',
@@ -60,67 +83,11 @@ class CrudViewCommand extends Command
 //            ],
 //        ]
 
+        // make form fields
         $formFieldsHtml = '';
-        $formFieldsShow = '';
         foreach ($formFields as $item) {
-            $label = ucwords(strtolower(str_replace('_', ' ', $item['name'])));
-
-            if ($item['type'] == 'string' || $item['type'] == 'char' || $item['type'] == 'varchar'){
-                $formFieldsHtml .=
-                    "<div class=\"form-group\">
-                        <label for=\"".$item['name']."\">".$label.":</label>
-                        <input type=\"text\" class=\"form-control\" name=\"".$item['name']."\" id=\"".$item['name']."\">
-                    </div>";
-            }elseif ($item['type'] == 'number' || $item['type'] == 'integer' || $item['type'] == 'bigint' || $item['type'] == 'tinyint'){
-                $formFieldsHtml .=
-                    "<div class=\"form-group\">
-                        <label for=\"".$item['name']."\">".$label.":</label>
-                        <input type=\"number\" class=\"form-control\" name=\"".$item['name']."\" id=\"".$item['name']."\">
-                    </div>";
-            }elseif ($item['type'] == 'date' || $item['type'] == 'datetime' || $item['type'] == 'time'){
-                $formFieldsHtml .=
-                    "<div class=\"form-group\">
-                        <label for=\"".$item['name']."\">".$label.":</label>
-                        <input type=\"date\" class=\"form-control\" name=\"".$item['name']."\" id=\"".$item['name']."\">
-                    </div>";
-            }elseif ($item['type'] == 'boolean'){
-                $formFieldsHtml .=
-                    "<div class=\"\">
-                        <div class=\"radio\">
-                            <label><input type=\"radio\" name=\"".$item['name']."\" id=\"".$item['name']."\" value=\"1\">Yes</label>
-                        </div>
-                        <div class=\"radio\">
-                            <label><input type=\"radio\" name=\"".$item['name']."\" id=\"".$item['name']."\" value=\"0\" checked>No</label>
-                        </div>
-                    </div>";
-            }elseif ($item['type'] == 'text' || $item['type'] == 'json'){
-                $formFieldsHtml .=
-                    "<div class=\"form-group\">
-                        <label for=\"".$item['name']."\">".$label.":</label>
-                        <textarea class=\"form-control\" name=\"".$item['name']."\" id=\"".$item['name']."\"></textarea>
-                    </div>";
-            }elseif ($item['type'] == 'password'){
-                $formFieldsHtml .=
-                    "<div class=\"form-group\">
-                        <label for=\"".$item['name']."\">".$label.":</label>
-                        <input type=\"password\" class=\"form-control\" name=\"".$item['name']."\" id=\"".$item['name']."\">
-                    </div>";
-            }elseif ($item['type'] == 'email'){
-                $formFieldsHtml .=
-                    "<div class=\"form-group\">
-                        <label for=\"".$item['name']."\">".$label.":</label>
-                        <input type=\"email\" class=\"form-control\" name=\"".$item['name']."\" id=\"".$item['name']."\">
-                    </div>";
-            }else{
-                $formFieldsHtml .=
-                    "<div class=\"form-group\">
-                        <label for=\"".$item['name']."\">".$label.":</label>
-                        <input type=\"text\" class=\"form-control\" name=\"".$item['name']."\">
-                    </div>";
-            }
+            $formFieldsHtml .= $this->createField($item);
         }
-        // dd($formFields);
-        // dd($formFieldsShow);
 
         $formHeadingHtml = '';
         $formBodyHtml = '';
@@ -142,18 +109,12 @@ class CrudViewCommand extends Command
         if (!File::copy($indexFile, $newIndexFile)) {
             echo "failed to copy $indexFile...\n";
         } else {
-            file_put_contents($newIndexFile,
-                str_replace('%%formHeadingHtml%%', $formHeadingHtml, file_get_contents($newIndexFile)));
-            file_put_contents($newIndexFile,
-                str_replace('%%formBodyHtml%%', $formBodyHtml, file_get_contents($newIndexFile)));
-            file_put_contents($newIndexFile,
-                str_replace('%%crudName%%', $crudName, file_get_contents($newIndexFile)));
-            file_put_contents($newIndexFile,
-                str_replace('%%crudNameCap%%', $crudNameCap, file_get_contents($newIndexFile)));
-            file_put_contents($newIndexFile,
-                str_replace('%%crudNamePlural%%', $crudNamePlural, file_get_contents($newIndexFile)));
-            file_put_contents($newIndexFile,
-                str_replace('%%crudNamePluralCap%%', $crudNamePluralCap, file_get_contents($newIndexFile)));
+            file_put_contents($newIndexFile, str_replace('%%formHeadingHtml%%', $formHeadingHtml, file_get_contents($newIndexFile)));
+            file_put_contents($newIndexFile, str_replace('%%formBodyHtml%%', $formBodyHtml, file_get_contents($newIndexFile)));
+            file_put_contents($newIndexFile, str_replace('%%crudName%%', $crudName, file_get_contents($newIndexFile)));
+            file_put_contents($newIndexFile, str_replace('%%crudNameCap%%', $crudNameCap, file_get_contents($newIndexFile)));
+            file_put_contents($newIndexFile, str_replace('%%crudNamePlural%%', $crudNamePlural, file_get_contents($newIndexFile)));
+            file_put_contents($newIndexFile, str_replace('%%crudNamePluralCap%%', $crudNamePluralCap, file_get_contents($newIndexFile)));
         }
 
         // create
@@ -162,14 +123,10 @@ class CrudViewCommand extends Command
         if (!File::copy($createFile, $newCreateFile)) {
             echo "failed to copy $createFile...\n";
         } else {
-            file_put_contents($newCreateFile,
-                str_replace('%%crudName%%',$crudName,file_get_contents($newCreateFile)));
-            file_put_contents($newCreateFile,
-                str_replace('%%crudNamePlural%%',$crudNamePlural,file_get_contents($newCreateFile)));
-            file_put_contents($newCreateFile,
-                str_replace('%%formFieldsHtml%%',$formFieldsHtml,file_get_contents($newCreateFile)));
-            file_put_contents($newCreateFile,
-                str_replace('%%crudNameSingularCap%%', $crudNameSingularCap, file_get_contents($newCreateFile)));
+            file_put_contents($newCreateFile, str_replace('%%crudName%%',$crudName,file_get_contents($newCreateFile)));
+            file_put_contents($newCreateFile, str_replace('%%crudNamePlural%%',$crudNamePlural,file_get_contents($newCreateFile)));
+            file_put_contents($newCreateFile, str_replace('%%formFieldsHtml%%',$formFieldsHtml,file_get_contents($newCreateFile)));
+            file_put_contents($newCreateFile, str_replace('%%crudNameSingularCap%%', $crudNameSingularCap, file_get_contents($newCreateFile)));
         }
 
         // edit
@@ -178,15 +135,10 @@ class CrudViewCommand extends Command
         if (!File::copy($editFile, $newEditFile)) {
             echo "failed to copy $editFile...\n";
         } else {
-            file_put_contents($newEditFile,
-                str_replace('%%crudName%%',$crudName,file_get_contents($newEditFile)));
-            file_put_contents($newEditFile,
-                str_replace('%%crudNameSingular%%',$crudNameSingular,file_get_contents($newEditFile)));
-            file_put_contents($newEditFile,
-                str_replace('%%crudNameSingularCap%%', $crudNameSingularCap, file_get_contents($newEditFile)));
-            file_put_contents($newEditFile,
-                str_replace('%%formFieldsHtml%%',$formFieldsHtml,file_get_contents($newEditFile)));
-
+            file_put_contents($newEditFile, str_replace('%%crudName%%',$crudName,file_get_contents($newEditFile)));
+            file_put_contents($newEditFile, str_replace('%%crudNameSingular%%',$crudNameSingular,file_get_contents($newEditFile)));
+            file_put_contents($newEditFile, str_replace('%%crudNameSingularCap%%', $crudNameSingularCap, file_get_contents($newEditFile)));
+            file_put_contents($newEditFile, str_replace('%%formFieldsHtml%%',$formFieldsHtml,file_get_contents($newEditFile)));
         }
 
         // show
@@ -195,14 +147,10 @@ class CrudViewCommand extends Command
         if (!File::copy($showFile, $newShowFile)) {
             echo "failed to copy $showFile...\n";
         } else {
-            file_put_contents($newShowFile,
-                str_replace('%%formHeadingHtml%%', $formHeadingHtml, file_get_contents($newShowFile)));
-            file_put_contents($newShowFile,
-                str_replace('%%formBodyHtmlForShowView%%', $formBodyHtmlForShowView, file_get_contents($newShowFile)));
-            file_put_contents($newShowFile,
-                str_replace('%%crudNameSingular%%',$crudNameSingular,file_get_contents($newShowFile)));
-            file_put_contents($newShowFile,
-                str_replace('%%crudNameSingularCap%%', $crudNameSingularCap, file_get_contents($newShowFile)));
+            file_put_contents($newShowFile, str_replace('%%formHeadingHtml%%', $formHeadingHtml, file_get_contents($newShowFile)));
+            file_put_contents($newShowFile, str_replace('%%formBodyHtmlForShowView%%', $formBodyHtmlForShowView, file_get_contents($newShowFile)));
+            file_put_contents($newShowFile, str_replace('%%crudNameSingular%%',$crudNameSingular,file_get_contents($newShowFile)));
+            file_put_contents($newShowFile, str_replace('%%crudNameSingularCap%%', $crudNameSingularCap, file_get_contents($newShowFile)));
         }
 
         // layouts/master.blade.php file
@@ -223,5 +171,62 @@ class CrudViewCommand extends Command
         }
 
         $this->info('View created successfully.');
+    }
+
+    // pa crud:generate --fields=title:string,content:text,joining:date,age:number,status:boolean
+    protected function createField($item){
+        // $item['name'] = title
+        // $item['type'] = string
+        $form_type = $this->typeLookup[$item['type']];
+
+        switch ($form_type) {
+            case 'textarea':
+                return $this->createTextareaField($item);
+                break;
+            case 'radio':
+                return $this->createRadioField($item);
+                break;
+            default:
+                 return $this->createFormField($item);
+        }
+    }
+
+    protected function createFormField($item){
+        $form_type = $this->typeLookup[$item['type']];
+        $required = ($item['required'] === true) ? ", 'required' => 'required'" : "";
+
+        return $this->wrapField(
+            $item,
+            "<input type=\"".$form_type."\" class=\"form-control\" name=\"".$item['name']."\" id=\"".$item['name']."\" ".$required.">"
+        );
+    }
+
+    protected function createTextareaField($item){
+        $required = ($item['required'] === true) ? ", 'required' => 'required'" : "";
+
+        return $this->wrapField(
+            $item,
+            "<textarea class=\"form-control\" name=\"".$item['name']."\" id=\"".$item['name']."\" ".$required."></textarea>"
+        );
+    }
+
+    protected function createRadioField($item){
+        return "<div class=\"\">
+                    <div class=\"radio\">
+                        <label><input type=\"radio\" name=\"".$item['name']."\" id=\"".$item['name']."\" value=\"1\">Yes</label>
+                    </div>
+                    <div class=\"radio\">
+                        <label><input type=\"radio\" name=\"".$item['name']."\" id=\"".$item['name']."\" value=\"0\" checked>No</label>
+                    </div>
+                </div>";
+    }
+
+    protected function wrapField($item, $field){
+        $label = ucwords(strtolower(str_replace('_', ' ', $item['name'])));
+
+        return "<div class=\"form-group\">
+                    <label for=\"".$item['name']."\">".$label.":</label>
+                    ".$field."
+                </div>\n";
     }
 }

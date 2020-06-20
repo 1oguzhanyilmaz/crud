@@ -40,20 +40,36 @@ class CrudCommand extends Command
 
         if($this->option('fields') ) {
 
-            $fields = $this->option('fields'); // fields = ['title:string','content:text']
+            $fields = $this->option('fields');
             $primaryKey = $this->option('pk');
             $viewPath = $this->option('view-path');
 
+            $fieldsArray = explode(',', $fields);
+            $requiredFields = '';
+            $requiredFieldsStr = '';
 
-            $fillable_array = explode(',', $fields);
-            foreach ($fillable_array as $value) {
-                $data[] = preg_replace("/(.*?):(.*)/", "$1", trim($value));
+            foreach ($fieldsArray as $item) {
+                // $fieldsArray[0] = item = 'title:string:required'
+                // $fieldsArray[1] = item = 'content:text:required'
+                // $fieldsArray[2] = item = 'age:number'
+                // $fieldsArray[3] = item = 'status:boolean'
+
+                $fillableArray[] = preg_replace("/(.*?):(.*)/", "$1", trim($item));
+                // $fillableArray = ['title','content','age','status']
+
+                $itemArray = explode(':', $item);
+                $currentField = trim($itemArray[0]);
+                $requiredFieldsStr .= ( isset($itemArray[2]) && (trim($itemArray[2]) == 'required') )
+                                            ? "'$currentField' => 'required', "
+                                            : '';
+                // 'title' => 'required', 'content' => 'required',
             }
-            // dd($data); // ['title','content']
 
-            $comma_separeted_str = implode("', '", $data);
+            $comma_separeted_str = implode("', '", $fillableArray);
             $fillable = "['" . $comma_separeted_str .  "']";
-            $this->call('crud:controller', ['name' => $controllerNamespace . $name . 'Controller', '--crud-name' => $name, '--view-path' => $viewPath]);
+
+            $requiredFields = ($requiredFieldsStr != '') ? "[" . $requiredFieldsStr . "]" : '';
+            $this->call('crud:controller', ['name' => $controllerNamespace . $name . 'Controller', '--crud-name' => $name, '--view-path' => $viewPath, '--required-fields' => $requiredFields]);
             $this->call('crud:model', ['name' => $name, '--fillable' => $fillable, '--table' => Str::plural(strtolower($name))]);
             $this->call('crud:migration', ['name' => Str::plural(strtolower($name)), '--schema' => $fields, '--pk' => $primaryKey]);
             $this->call('crud:view', ['name' => $name, '--fields' => $fields, '--view-path' => $viewPath]);
