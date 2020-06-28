@@ -1,27 +1,40 @@
-@extends('layouts.master')
+@extends('layouts.app')
 
 @section('content')
-    <div class="">
-        <h1>Create a new %%crudNameSingularCap%%</h1>
-        <hr/>
+<div class="container">
 
-        <form method="post" action="{{ route('%%crudName%%.store') }}">
-            @csrf
+    <div class="row">
+        @include('admin.sidebar')
 
-            %%formFieldsHtml%%
+        <div class="col-md-9">
+            <div class="panel panel-default">
+                <div class="panel-heading">Create New %%modelName%%</div>
 
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary-outline">Create</button>
+                <div class="panel-body">
+
+                    <a href="{{ url('/%%routeGroup%%%%viewName%%') }}" title="Back">
+                        <button class="btn btn-warning btn-xs"><i class="fa fa-arrow-left" aria-hidden="true"></i> Back</button>
+                    </a>
+                    <br />
+                    <br />
+
+                    @if ($errors->any())
+                        <ul class="alert alert-danger">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
+
+                    <form method="post" action="{{ url('/%%routeGroup%%%%viewName%%') }}" enctype="multipart/form-data">
+                        @csrf
+
+                        @include ('%%viewTemplateDir%%.form')
+                    </form>
+
+                </div>
             </div>
-
-        </form>
-
-        @if ($errors->any())
-            <ul class="alert alert-danger">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        @endif
+        </div>
     </div>
+</div>
 @endsection

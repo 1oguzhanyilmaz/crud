@@ -10,13 +10,42 @@ class CrudMigrationCommand extends GeneratorCommand
     protected $signature = 'crud:migration
                                 {name : The name of the migration.}
                                 {--schema= : The name of the schema.}
+                                {--indexes= : The fields to add an index too.}
+                                {--foreign-keys= : Foreign keys.}
                                 {--pk=id : The name of the primary key.}';
 
     protected $description = 'Command Crud Migration description';
     protected $type = 'Migration';
 
+    protected $typeLookup = [
+        'char' => 'char',
+        'date' => 'date',
+        'datetime' => 'dateTime',
+        'time' => 'time',
+        'timestamp' => 'timestamp',
+        'text' => 'text',
+        'mediumtext' => 'mediumText',
+        'longtext' => 'longText',
+        'json' => 'json',
+        'jsonb' => 'jsonb',
+        'binary' => 'binary',
+        'number' => 'integer',
+        'integer' => 'integer',
+        'bigint' => 'bigInteger',
+        'mediumint' => 'mediumInteger',
+        'tinyint' => 'tinyInteger',
+        'smallint' => 'smallInteger',
+        'boolean' => 'boolean',
+        'decimal' => 'decimal',
+        'double' => 'double',
+        'float' => 'float',
+        'enum' => 'enum',
+    ];
+
     protected function getStub(){
-		return dirname(__DIR__).'/stubs/migration.stub';
+        return config('crudgenerator.custom_template')
+                    ? config('crudgenerator.path') . '/migration.stub'
+                    : dirname(__DIR__).'/stubs/migration.stub';
 	}
 
     protected function getPath($name){
@@ -29,45 +58,111 @@ class CrudMigrationCommand extends GeneratorCommand
     protected function buildClass($name){
         $stub = $this->files->get($this->getStub());
 
-        $tableName = strtolower($this->argument('name'));
-        $className = 'Create' . ucwords($tableName) . 'Table';
-
-        $schema = $this->option('schema');
-        // fields = ['title:string','content:text']
-        $fields = explode(',', $schema);
+        $tableName = $this->argument('name');
+        // First, replace it to space.
+        $classN = ucwords(str_replace('_', ' ', $tableName));
+        $className = 'Create' . str_replace(' ', '', $classN) . 'Table';
+        $fieldsToIndex = trim($this->option('indexes')) != ''
+                                ? explode(',', $this->option('indexes'))
+                                : [];
+        $schema = rtrim($this->option('schema'), ';');
+        $fields = explode(';', $schema);
+        // fields = ['title#string#default','content#text']
 
         $data = array();
-        $x = 0;
-        foreach ($fields as $field) {
-            $array = explode(':', $field);
-            $data[$x]['name'] = trim($array[0]);
-            $data[$x]['type'] = trim($array[1]);
-            $x++;
+
+        if ($schema){
+            $x = 0;
+            foreach ($fields as $field) {
+                $array = explode('#', $field);
+                $data[$x]['name'] = trim($array[0]); // title
+                $data[$x]['type'] = trim($array[1]); // string
+
+                $data[$x]['modifier'] = '';
+
+                $modifierLookup = [
+                    'comment',
+                    'default',
+                    'first',
+                    'nullable',
+                    'unsigned',
+                ];
+
+                if (isset($array[2]) && in_array(trim($array[2]), $modifierLookup)) {
+                    $data[$x]['modifier'] = "->" . trim($array[2]) . "()";
+                }
+
+                $x++;
+            }
         }
 
+        // $data[0] = ['name'=>'title',   'type'=>'string', 'modifier'=>'->default()']
+        // $data[1] = ['name'=>'content', 'type'=>'text',   'modifier'=>'']
         $schemaFields = '';
+        $tabIndent = '    ';
         foreach ($data as $item) {
-            if( $item['type']=='string' )               { $schemaFields .= "\$table->string('".$item['name']."');"; }
-                elseif ($item['type'] == 'char')        { $schemaFields .= "\$table->char('" . $item['name'] . "');\n";}
-                elseif ($item['type'] == 'varchar')     { $schemaFields .= "\$table->string('" . $item['name'] . "');\n";}
-                elseif ($item['type'] == 'password')    { $schemaFields .= "\$table->string('" . $item['name'] . "');\n";}
-                elseif ($item['type'] == 'email')       { $schemaFields .= "\$table->string('" . $item['name'] . "');\n";}
-                elseif ($item['type'] == 'date')        { $schemaFields .= "\$table->date('" . $item['name'] . "');\n";}
-                elseif ($item['type'] == 'datetime')    { $schemaFields .= "\$table->datetime('" . $item['name'] . "');\n";}
-                elseif ($item['type'] == 'time')        { $schemaFields .= "\$table->time('" . $item['name'] . "');\n";}
-                elseif ($item['type'] == 'timestamp')   { $schemaFields .= "\$table->timestamp('" . $item['name'] . "');\n";}
-                elseif( $item['type'] == 'text' )       { $schemaFields .= "\$table->text('".$item['name']."');\n";}
-                elseif( $item['type'] == 'json' )       { $schemaFields .= "\$table->json('".$item['name']."');\n";}
-                elseif( $item['type'] == 'integer' )    { $schemaFields .= "\$table->integer('".$item['name']."');";}
-                elseif( $item['type'] == 'number' )     { $schemaFields .= "\$table->integer('".$item['name']."');";}
-                elseif( $item['type'] == 'bigint' )     { $schemaFields .= "\$table->bigInteger('".$item['name']."');";}
-                elseif( $item['type'] == 'tinyint' )    { $schemaFields .= "\$table->tinyInteger('".$item['name']."');";}
-                elseif( $item['type'] == 'boolean' )    { $schemaFields .= "\$table->boolean('".$item['name']."');";}
-                elseif( $item['type'] == 'date' )       { $schemaFields .= "\$table->date('".$item['name']."');";}
-                else                                    { $schemaFields .= "\$table->string('".$item['name']."');";}
+            if (isset($this->typeLookup[$item['type']])) {
+                $type = $this->typeLookup[$item['type']];
+
+                $schemaFields .= "\$table->" . $type . "('" . $item['name'] . "')";
+            } else {
+                $schemaFields .= "\$table->string('" . $item['name'] . "')";
+            }
+
+            $schemaFields .= $item['modifier'];
+            $schemaFields .= ";\n" . $tabIndent . $tabIndent . $tabIndent;
+        }
+        // $schemaFields
+        // $table->string('title')->default();
+        // $table->text('content');
+
+        foreach ($fieldsToIndex as $fldData){
+            $line = trim($fldData);
+            if (strpos($line, '#') === false){
+                $line .= '#';
+            }
+
+            $parts = explode('#', $line);
+            if (strpos($parts[0],'|') !== 0){
+                $fieldNames = "['" . implode("', '", explode('|', $parts[0])) . "']";
+            }else{
+                $fieldNames = trim($parts[0]);
+            }
+
+            if (count($parts) > 1 && $parts[1] == 'unique') {
+                $schemaFields .= "\$table->unique('" . trim($fieldNames) . "')";
+            } else {
+                $schemaFields .= "\$table->index('" . trim($fieldNames) . "')";
+            }
+
+            $schemaFields .= ";\n" . $tabIndent . $tabIndent . $tabIndent;
         }
 
-        // $primaryKey = strtolower($this->option('pk'));
+        $foreignKeys = trim($this->option('foreign-keys')) != ''
+                                ? explode(',', $this->option('foreign-keys'))
+                                : [];
+        // --foreign keys
+            // 0 => comment_id
+            // 1 => id
+            // 2 => comments
+            // 3 => cascade
+        foreach ($foreignKeys as $fk){
+            $line = trim($fk);
+            $parts = explode('#', $line);
+            if (count($parts) == 3) {
+                $schemaFields .= "\$table->foreign('" . trim($parts[0]) . "')"
+                    . "->references('" . trim($parts[1]) . "')->on('" . trim($parts[2]) . "')";
+            }elseif(count($parts) == 4){
+                $schemaFields .= "\$table->foreign('" . trim($parts[0]) . "')"
+                    . "->references('" . trim($parts[1]) . "')->on('" . trim($parts[2]) . "')"
+                    . "->onDelete('" . trim($parts[3]) . "')";
+            }else{
+                continue;
+            }
+
+            $schemaFields .= ";\n" . $tabIndent . $tabIndent . $tabIndent;
+        }
+        // $primaryKey = ($this->option('pk'));
 
         $schemaUp = "
         Schema::create('".$tableName."', function(Blueprint \$table)
@@ -86,18 +181,12 @@ class CrudMigrationCommand extends GeneratorCommand
     }
 
     protected function replaceSchemaUp(&$stub, $schemaUp){
-        $stub = str_replace(
-            '{{schema_up}}', $schemaUp, $stub
-        );
-
+        $stub = str_replace('{{schema_up}}', $schemaUp, $stub);
         return $this;
     }
 
     protected function replaceSchemaDown(&$stub, $schemaDown){
-        $stub = str_replace(
-            '{{schema_down}}', $schemaDown, $stub
-        );
-
+        $stub = str_replace('{{schema_down}}', $schemaDown, $stub);
         return $this;
     }
 }

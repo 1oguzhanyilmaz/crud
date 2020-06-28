@@ -1,25 +1,44 @@
-@extends('layouts.master')
+@extends('layouts.app')
 
 @section('content')
-    <div class="panel panel-default">
-        <div class="panel-heading">Dashboard</div>
+    <div class="container">
 
-        <div class="panel-body">
-            <h1>%%crudNameSingularCap%%</h1>
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>ID</th> %%formHeadingHtml%%
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>{{ $%%crudNameSingular%%->id }}</td> %%formBodyHtmlForShowView%%
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="row">
+
+                @include('admin.sidebar')
+
+                <div class="col-md-9">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">%%modelName%% #{{ $%%crudNameSingular%%->id }}</div>
+                        <div class="panel-body">
+
+                            <h1>%%modelName%% #{{ $%%crudNameSingular%%->id }}</h1>
+
+                            <a href="{{ url('/%%routeGroup%%%%viewName%%') }}" title="Back">
+                                <button class="btn btn-warning btn-xs"><i class="fa fa-arrow-left" aria-hidden="true"></i> Back</button>
+                            </a>
+
+                            <br>
+
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th> %%formHeadingHtml%%
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>{{ $%%crudNameSingular%%->id }}</td> %%formBodyHtmlForShowView%%
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+
     </div>
 @endsection

@@ -1,0 +1,6 @@
+<div class="form-group">
+    <label for="%%itemName%%">Select list (select one):</label>
+    <select class="form-control" %%required%% name="%%itemName%%" id="%%itemName%%">
+        %%options%%
+    </select>
+</div>

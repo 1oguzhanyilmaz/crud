@@ -4,7 +4,7 @@ namespace DummyNamespace;
 use DummyRootNamespaceHttp\Requests;
 use DummyRootNamespaceHttp\Controllers\Controller;
 
-use DummyRootNamespace{{crudNameCap}};
+use DummyRootNamespace{{modelNamespace}}{{modelName}};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Carbon\Carbon;
@@ -12,53 +12,57 @@ use Carbon\Carbon;
 class DummyClass extends Controller {
     public function index()
 	{
-		${{crudNamePlural}} = {{crudNameCap}}::paginate(15);
-		return view('{{viewPath}}{{crudName}}.index', compact('{{crudNamePlural}}'));
+		${{crudName}} = {{modelName}}::paginate({{pagination}});
+		return view('{{viewPath}}{{viewName}}.index', compact('{{crudName}}'));
 	}
 
 	public function create()
     {
-        return view('{{viewPath}}{{crudName}}.create');
+        return view('{{viewPath}}{{viewName}}.create');
     }
 
     public function store(Request $request)
     {
         {{validationRules}}
-        {{crudNameCap}}::create($request->all());
+        $requestData = $request->all();
+        {{fileSnippet}}
+        {{modelName}}::create($requestData);
 
-        Session::flash('flash_message', '{{crudNameCap}} successfully added!');
+        Session::flash('flash_message', '{{modelName}} successfully added!');
 
-        return redirect('{{crudName}}');
+        return redirect('{{routeGroup}}{{viewName}}');
     }
 
     public function show($id)
     {
-        ${{crudNameSingular}} = {{crudNameCap}}::findOrFail($id);
-        return view('{{viewPath}}{{crudName}}.show', compact('{{crudNameSingular}}'));
+        ${{crudNameSingular}} = {{modelName}}::findOrFail($id);
+        return view('{{viewPath}}{{viewName}}.show', compact('{{crudNameSingular}}'));
     }
 
     public function edit($id)
     {
-        ${{crudNameSingular}} = {{crudNameCap}}::findOrFail($id);
-        return view('{{viewPath}}{{crudName}}.edit', compact('{{crudNameSingular}}'));
+        ${{crudNameSingular}} = {{modelName}}::findOrFail($id);
+        return view('{{viewPath}}{{viewName}}.edit', compact('{{crudNameSingular}}'));
     }
 
     public function update($id, Request $request)
     {
         {{validationRules}}
-        ${{crudNameSingular}} = {{crudNameCap}}::findOrFail($id);
-        ${{crudNameSingular}}->update($request->all());
+        $requestData = $request->all();
+        {{fileSnippet}}
+        ${{crudNameSingular}} = {{modelName}}::findOrFail($id);
+        ${{crudNameSingular}}->update($requestData);
 
-        Session::flash('flash_message', '{{crudNameCap}} successfully updated!');
+        Session::flash('flash_message', '{{modelName}} successfully updated!');
 
-        return redirect('{{crudName}}');
+        return redirect('{{routeGroup}}{{viewName}}');
     }
 
     public function destroy($id)
     {
-        {{crudNameCap}}::destroy($id);
-        Session::flash('flash_message', '{{crudNameCap}} successfully deleted!');
+        {{modelName}}::destroy($id);
+        Session::flash('flash_message', '{{modelName}} successfully deleted!');
 
-        return redirect('{{crudName}}');
+        return redirect('{{routeGroup}}{{viewName}}');
     }
 }

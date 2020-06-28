@@ -1,0 +1,8 @@
+<div class="">
+    <div class="radio">
+        <label><input type="radio" name="%%itemName%%" id="%%itemName%%" value="1">Yes</label>
+    </div>
+    <div class="radio">
+        <label><input type="radio" name="%%itemName%%" id="%%itemName%%" value="0" checked>No</label>
+    </div>
+</div>

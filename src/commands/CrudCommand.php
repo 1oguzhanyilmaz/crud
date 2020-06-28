@@ -12,11 +12,21 @@ class CrudCommand extends Command
 
     protected $signature = 'crud:generate
                                 {name : The name of the Crud.}
-                                {--fields= : Fields name for the form & model.}
-                                {--route=yes : Include Crud route to routes.php? yes|no.}
+                                {--fields= : Fields name for the form & migration.}
+                                {--fields_from_file= : Fields from a json file.}
+                                {--validations= : Validation details for the fields.}
+                                {--controller-namespace= : Namespace of the controller.}
+                                {--model-namespace= : Namespace of the model inside "app" dir}
                                 {--pk=id : The name of the primary key.}
+                                {--pagination=10 : The amount of models per page for index pages.}
+                                {--indexes= : The fields to add an index to.}
+                                {--foreign-keys= : The foreign keys for the table}
+                                {--relationships= : The relationships for the model}
+                                {--route=yes : Include Crud route to routes.php? yes|no.}
+                                {--route-group= : Prefix of the route group.}
                                 {--view-path= : The name of the view path.}
-                                {--namespace= : Namespace of the controller.}';
+                                {--localize=no : Allow localize? yes|no. }
+                                {--locales=en : Locales}';
 
     // php artisan crud:generate Posts
         // --fields='title#string; content#text; category#select#options={"technology": "Technology", "tips": "Tips", "health": "Health"}'
@@ -27,6 +37,8 @@ class CrudCommand extends Command
 
 
     protected $description = 'Command description';
+    protected $routeName = '';
+    protected $controller = '';
 
     public function __construct()
     {
@@ -35,56 +47,119 @@ class CrudCommand extends Command
 
     public function handle()
     {
-        $name = $this->argument('name');
-        $controllerNamespace = ($this->option('namespace')) ? $this->option('namespace') . '\\' : '';
+        $name = $this->argument('name'); // Posts
+        $modelName = Str::singular($name); // Post
+        $migrationName = Str::plural(Str::snake($name)); // posts
+        $tableName = $migrationName; // posts
 
-        if($this->option('fields') ) {
+        $routeGroup = $this->option('route-group'); // optional
+        $this->routeName = ($routeGroup)
+                                ? $routeGroup . '/' . Str::snake($name,'-')
+                                : Str::snake($name, '-');
 
-            $fields = $this->option('fields');
-            $primaryKey = $this->option('pk');
-            $viewPath = $this->option('view-path');
+        $perPage = intval($this->option('pagination')); // 10
 
-            $fieldsArray = explode(',', $fields);
-            $requiredFields = '';
-            $requiredFieldsStr = '';
+        $controllerNamespace = ($this->option('controller-namespace'))
+                                        ? $this->option('controller-namespace') . '\\'
+                                        : '';
+        $modelNamespace = ($this->option('model-namespace'))
+                                    ? trim($this->option('model-namespace')) . '\\'
+                                    : '';
 
-            foreach ($fieldsArray as $item) {
-                // $fieldsArray[0] = item = 'title:string:required'
-                // $fieldsArray[1] = item = 'content:text:required'
-                // $fieldsArray[2] = item = 'age:number'
-                // $fieldsArray[3] = item = 'status:boolean'
+        $fields = rtrim($this->option('fields'), ';');
 
-                $fillableArray[] = preg_replace("/(.*?):(.*)/", "$1", trim($item));
-                // $fillableArray = ['title','content','age','status']
-
-                $itemArray = explode(':', $item);
-                $currentField = trim($itemArray[0]);
-                $requiredFieldsStr .= ( isset($itemArray[2]) && (trim($itemArray[2]) == 'required') )
-                                            ? "'$currentField' => 'required', "
-                                            : '';
-                // 'title' => 'required', 'content' => 'required',
-            }
-
-            $comma_separeted_str = implode("', '", $fillableArray);
-            $fillable = "['" . $comma_separeted_str .  "']";
-
-            $requiredFields = ($requiredFieldsStr != '') ? "[" . $requiredFieldsStr . "]" : '';
-            $this->call('crud:controller', ['name' => $controllerNamespace . $name . 'Controller', '--crud-name' => $name, '--view-path' => $viewPath, '--required-fields' => $requiredFields]);
-            $this->call('crud:model', ['name' => $name, '--fillable' => $fillable, '--table' => Str::plural(strtolower($name))]);
-            $this->call('crud:migration', ['name' => Str::plural(strtolower($name)), '--schema' => $fields, '--pk' => $primaryKey]);
-            $this->call('crud:view', ['name' => $name, '--fields' => $fields, '--view-path' => $viewPath]);
-        }else {
-            $this->call('make:controller', ['name' => $controllerNamespace . $name . 'Controller']);
-            $this->call('make:model', ['name' => $name]);
+        if ($this->option('fields_from_file')) {
+            $fields = $this->processJSONFields($this->option('fields_from_file'));
         }
+
+        $primaryKey = $this->option('pk');
+        $viewPath = $this->option('view-path');
+
+        $foreignKeys = $this->option('foreign-keys');
+
+        $fieldsArray = explode(';', $fields);
+        $fillableArray = [];
+
+        foreach ($fieldsArray as $item) {
+            // $fieldsArray[0] = item = 'title#string#required'
+            // $fieldsArray[1] = item = 'content#text#required'
+            // $fieldsArray[2] = item = 'status#boolean'
+
+            $temp_arr = explode('#', trim($item));
+            $fillableArray[] = $temp_arr[0];
+        }
+        // $fillableArray[0]=title
+        // $fillableArray[1]=content
+        // $fillableArray[2]=status
+
+        $comma_separeted_str = implode("', '", $fillableArray);
+        $fillable = "['" . $comma_separeted_str .  "']";
+        // $fillable = "['title','content','status']"
+
+        $localize = $this->option('localize');
+        $locales = $this->option('locales');
+
+        $indexes = $this->option('indexes'); // null by default
+        $relationships = $this->option('relationships'); // null by default
+        $validations = trim($this->option('validations')); // null by default
+
+        $this->call('crud:controller', [
+            'name' => $controllerNamespace . $name . 'Controller',
+            '--crud-name' => $name,
+            '--model-name' => $modelName,
+            '--model-namespace' => $modelNamespace,
+            '--view-path' => $viewPath,
+            '--route-group' => $routeGroup,
+            '--pagination' => $perPage,
+            '--fields' => $fields,
+            '--validations' => $validations
+        ]);
+        // dd('Controller Created');
+
+        $this->call('crud:model', [
+            'name' => $modelNamespace . $modelName,
+            '--fillable' => $fillable,
+            '--table' => $tableName,
+            '--pk' => $primaryKey,
+            '--relationships' => $relationships
+        ]);
+         // dd('Model Created');
+
+        $this->call('crud:migration', [
+            'name' => $migrationName,
+            '--schema' => $fields,
+            '--pk' => $primaryKey,
+            '--indexes' => $indexes,
+            '--foreign-keys' => $foreignKeys
+        ]);
+        // dd('Migration Created');
+
+        $this->call('crud:view', [
+            'name' => $name,
+            '--fields' => $fields,
+            '--validations' => $validations,
+            '--view-path' => $viewPath,
+            '--route-group' => $routeGroup,
+            '--localize' => $localize,
+            '--pk' => $primaryKey
+        ]);
+        // dd('View Created');
+
+        // no by default
+        if($localize == 'yes') {
+            $this->call('crud:lang', ['name' => $name, '--fields' => $fields, '--locales' => $locales]);
+        }
+        // optimizing
+        // $this->callSilent('optimize');
 
         $route_file = base_path('routes/web.php');
         if ( file_exists($route_file) && (strtolower($this->option('route')) === 'yes') )  {
 
-            $controller = ($controllerNamespace != '')
+            $this->controller = ($controllerNamespace != '')
                 ? $controllerNamespace . '\\' . $name . 'Controller'
                 : $name . 'Controller';
-            $isAdded = File::append($route_file, "\nRoute::resource('" . strtolower($name) . "', '" . $controller . "');");
+
+            $isAdded = File::append($route_file, "\n".implode("\n", $this->addRoutes()));
 
             if ($isAdded) {
                 $this->info('Routes added to '. $route_file .'.');
@@ -96,11 +171,33 @@ class CrudCommand extends Command
 
         // File::append( base_path('routes/web.php') , "\nRoute::resource('" . strtolower($name) . "','" . $name . "Controller');" );
 
-        dd('dont migrate');
+        // dd('dont migrate');
 
         // migrate
        $this->call('migrate');
 
+    }
+
+    protected function processJSONFields($file){
+        $json = File::get($file);
+        $fields = json_decode($json);
+
+        $fieldsString = '';
+        foreach ($fields->fields as $field) {
+            if ($field->type == 'select') {
+                $fieldsString .= $field->name . '#' . $field->type . '#options=' . implode(',', $field->options) . ';';
+            } else {
+                $fieldsString .= $field->name . '#' . $field->type . ';';
+            }
+        }
+
+        $fieldsString = rtrim($fieldsString, ';');
+
+        return $fieldsString;
+    }
+
+    protected function addRoutes() {
+        return ["Route::resource('" . $this->routeName . "', '" . $this->controller . "');"];
     }
 
 }

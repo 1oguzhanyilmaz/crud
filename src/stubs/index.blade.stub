@@ -1,35 +1,52 @@
-@extends('layouts.master')
+@extends('layouts.app')
 
 @section('content')
-    <div class="">
-        <h1>%%crudNamePluralCap%%</h1>
-        <h2><a href="{{ route('%%crudName%%.create') }}" class="btn btn-primary pull-right btn-sm">Add New %%crudNameCap%%</a></h2>
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover">
-                <thead>
-                    <tr>
-                        <th>ID</th>%%formHeadingHtml%%<th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($%%crudNamePlural%% as $item)
-                        <tr>
-                            <td>{{ $item->id }}</td>
-                            %%formBodyHtml%%
-                            <td>
-                                <form action="{{ route('%%crudName%%.destroy', $item->id) }}" method="POST">
-                                    <a class="btn btn-info btn-xs" href="{{ route('%%crudName%%.show', $item->id) }}">Show</a>
-                                    <a class="btn btn-primary btn-xs" href="{{ route('%%crudName%%.edit', $item->id) }}">Edit</a>
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-xs">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-            <div class="pagination"> {!! $%%crudNamePlural%%->render() !!} </div>
+    <div class="container">
+
+        <div class="row">
+
+            @include('admin.sidebar')
+
+            <div class="col-md-9">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        %%crudNameCap%%
+                        <a href="{{ url('/%%routeGroup%%%%viewName%%/create') }}" title="Add New %%modelName%%" class="btn btn-success pull-right btn-sm">Add New %%modelName%%</a>
+                    </div>
+                    <div class="panel-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>%%formHeadingHtml%%<th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($%%crudName%% as $item)
+                                        <tr>
+                                            <td>{{ $item->id }}</td>
+                                            %%formBodyHtml%%
+                                            <td>
+                                                <form action="{{ url('/%%routeGroup%%%%viewName%%/'.$item->id) }}" method="POST">
+                                                    <a class="btn btn-info btn-xs" title="Show %%modelName%%" href="{{ url('/%%routeGroup%%%%viewName%%/'.$item->id) }}">Show</a>
+                                                    <a class="btn btn-primary btn-xs" title="Edit %%modelName%%" href="{{ url('/%%routeGroup%%%%viewName%%/'.$item->id.'/edit') }}">Edit</a>
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" onclick="return confirm('sure this delete?')" title="Delete %%modelName%%" class="btn btn-danger btn-xs">Delete</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                            <div class="pagination-wrapper"> {!! $%%crudName%%->render() !!} </div>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
         </div>
+
     </div>
 @endsection
