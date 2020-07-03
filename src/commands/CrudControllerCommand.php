@@ -96,9 +96,10 @@ class CrudControllerCommand extends GeneratorCommand
 
         $fieldsArray = explode(';', $fields);
         $fileSnippet = '';
+        $whereSnippet = '';
 
         if ($fields) {
-            foreach ($fieldsArray as $item) {
+            foreach ($fieldsArray as $index => $item) {
                 // $item => title#string
                 // $item => content#text
                 $itemArray = explode('#', $item);
@@ -106,6 +107,12 @@ class CrudControllerCommand extends GeneratorCommand
                 if (trim($itemArray[1]) == 'file') {
                     $fileSnippet .= "\n\n" . str_replace('{{fieldName}}', trim($itemArray[0]), $snippet) . "\n";
                 }
+
+                $fieldName = trim($itemArray[0]);
+
+                $whereSnippet .= ($index == 0)
+                                    ? "where('$fieldName', 'LIKE', \"%\$keyword%\")" . "\n\t\t\t\t"
+                                    : "->orWhere('$fieldName', 'LIKE', \"%\$keyword%\")" . "\n\t\t\t\t";
             }
         }
 
@@ -120,6 +127,7 @@ class CrudControllerCommand extends GeneratorCommand
                     ->replaceValidationRules($stub, $validationRules)
                     ->replacePaginationNumber($stub, $perPage)
                     ->replaceFileSnippet($stub, $fileSnippet)
+                    ->replaceWhereSnippet($stub, $whereSnippet)
                     ->replaceClass($stub, $name);
     }
 
@@ -170,6 +178,11 @@ class CrudControllerCommand extends GeneratorCommand
 
     protected function replaceFileSnippet(&$stub, $fileSnippet){
         $stub = str_replace('{{fileSnippet}}', $fileSnippet, $stub);
+        return $this;
+    }
+
+    protected function replaceWhereSnippet(&$stub, $whereSnippet){
+        $stub = str_replace('{{whereSnippet}}', $whereSnippet, $stub);
         return $this;
     }
 }

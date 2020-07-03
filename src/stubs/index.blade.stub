@@ -11,9 +11,28 @@
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         %%crudNameCap%%
-                        <a href="{{ url('/%%routeGroup%%%%viewName%%/create') }}" title="Add New %%modelName%%" class="btn btn-success pull-right btn-sm">Add New %%modelName%%</a>
                     </div>
                     <div class="panel-body">
+
+                        <div class="row" style="padding:1rem 0;">
+                            <div class="col-sm-6">
+                                <a href="{{ url('/%%routeGroup%%%%viewName%%/create') }}" title="Add New %%modelName%%" class="btn btn-success pull-right btn-sm">Add New %%modelName%%</a>
+                            </div>
+                            <div class="col-sm-6">
+                                <form action="{{ url('/%%routeGroup%%%%viewName%%') }}" method="GET">
+                                    @csrf
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="search" placeholder="Search...">
+                                        <span class="input-group-btn">
+                                            <button class="btn btn-default" type="submit">
+                                                <i class="fa fa-search"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover">
                                 <thead>
