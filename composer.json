@@ -13,7 +13,10 @@
         }
     ],
     "minimum-stability": "dev",
-    "require": {},
+    "require": {
+        "illuminate/support": "^6.0|^7.0",
+        "laravelcollective/html": "^6.0|^7.0"
+    },
     "autoload": {
         "psr-4": {
             "Oy\\": "src/"

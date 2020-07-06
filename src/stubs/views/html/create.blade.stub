@@ -7,16 +7,16 @@
         @include('admin.sidebar')
 
         <div class="col-md-9">
-            <div class="panel panel-default">
-                <div class="panel-heading">Create New %%modelName%%</div>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6>Create New %%modelName%%</h6>
 
-                <div class="panel-body">
-
-                    <a href="{{ url('/%%routeGroup%%%%viewName%%') }}" title="Back">
-                        <button class="btn btn-warning btn-xs"><i class="fa fa-arrow-left" aria-hidden="true"></i> Back</button>
+                    <a href="{{ url('/%%routeGroup%%%%viewName%%') }}" title="Back" class="btn btn-warning btn-sm">
+                        <i class="fa fa-arrow-left" aria-hidden="true"></i> Back
                     </a>
-                    <br />
-                    <br />
+                </div>
+
+                <div class="card-body">
 
                     @if ($errors->any())
                         <ul class="alert alert-danger">
@@ -29,7 +29,7 @@
                     <form method="post" action="{{ url('/%%routeGroup%%%%viewName%%') }}" enctype="multipart/form-data">
                         @csrf
 
-                        @include ('%%viewTemplateDir%%.form')
+                        @include ('%%viewTemplateDir%%.form', ['formMode' => 'create'])
                     </form>
 
                 </div>

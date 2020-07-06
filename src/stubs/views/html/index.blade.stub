@@ -8,33 +8,37 @@
             @include('admin.sidebar')
 
             <div class="col-md-9">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        %%crudNameCap%%
-                    </div>
-                    <div class="panel-body">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6>%%crudNameCap%%</h6>
 
-                        <div class="row" style="padding:1rem 0;">
+                        <div class="d-flex justify-content-around align-items-center">
+
                             <div class="col-sm-6">
-                                <a href="{{ url('/%%routeGroup%%%%viewName%%/create') }}" title="Add New %%modelName%%" class="btn btn-success pull-right btn-sm">Add New %%modelName%%</a>
-                            </div>
-                            <div class="col-sm-6">
-                                <form action="{{ url('/%%routeGroup%%%%viewName%%') }}" method="GET">
+                                <form action="{{ url('/%%routeGroup%%%%viewName%%') }}" method="GET" class="form-inline my-2 my-lg-0 float-right">
                                     @csrf
                                     <div class="input-group">
-                                        <input type="text" class="form-control" name="search" placeholder="Search...">
-                                        <span class="input-group-btn">
-                                            <button class="btn btn-default" type="submit">
+                                        <input type="text" class="form-control" name="search" placeholder="Search..." value="{{ request('search') }}">
+                                        <span class="input-group-append">
+                                            <button class="btn btn-secondary" type="submit">
                                                 <i class="fa fa-search"></i>
                                             </button>
                                         </span>
                                     </div>
                                 </form>
                             </div>
+
+                            <div class="col-sm-6">
+                                <a href="{{ url('/%%routeGroup%%%%viewName%%/create') }}" title="Add New %%modelName%%" class="btn btn-success pull-right btn-sm">Add New %%modelName%%</a>
+                            </div>
+
                         </div>
 
+                    </div>
+                    <div class="card-body">
+
                         <div class="table-responsive">
-                            <table class="table table-bordered table-hover">
+                            <table class="table">
                                 <thead>
                                     <tr>
                                         <th>ID</th>%%formHeadingHtml%%<th>Actions</th>
@@ -47,11 +51,11 @@
                                             %%formBodyHtml%%
                                             <td>
                                                 <form action="{{ url('/%%routeGroup%%%%viewName%%/'.$item->id) }}" method="POST">
-                                                    <a class="btn btn-info btn-xs" title="Show %%modelName%%" href="{{ url('/%%routeGroup%%%%viewName%%/'.$item->id) }}">Show</a>
-                                                    <a class="btn btn-primary btn-xs" title="Edit %%modelName%%" href="{{ url('/%%routeGroup%%%%viewName%%/'.$item->id.'/edit') }}">Edit</a>
+                                                    <a href="{{ url('/%%routeGroup%%%%viewName%%/'.$item->id) }}" class="btn btn-info btn-sm" title="Show %%modelName%%">Show</a>
+                                                    <a href="{{ url('/%%routeGroup%%%%viewName%%/'.$item->id.'/edit') }}" class="btn btn-primary btn-sm" title="Edit %%modelName%%">Edit</a>
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" onclick="return confirm('sure this delete?')" title="Delete %%modelName%%" class="btn btn-danger btn-xs">Delete</button>
+                                                    <button type="submit" onclick="return confirm('sure this delete?')" title="Delete %%modelName%%" class="btn btn-danger btn-sm">Delete</button>
                                                 </form>
                                             </td>
                                         </tr>

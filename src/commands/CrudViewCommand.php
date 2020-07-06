@@ -12,31 +12,54 @@ class CrudViewCommand extends Command
     protected $signature = 'crud:view
                                 {name : The name of the Crud.}
                                 {--fields= : The field names for the form.}
+                                {--validations= : Validation rules for the fields.}
                                 {--view-path= : The name of the view path.}
                                 {--route-group= : Prefix of the route group.}
                                 {--pk=id : primary key.}
-                                {--validations= : Validation details for the fields.}
-                                {--localize=no : yes|no.}';
+                                {--localize=no : yes|no.}
+                                {--foreign-keys : Fields that will not show on the form.}';
 
     protected $description = 'Command Crud View description';
     protected $viewDirectoryPath;
-
     protected $formFields = [];
     protected $formFieldsHtml = '';
     protected $crudName = '';
     protected $crudNameCap = '';
     protected $crudNameSingular = '';
-
     protected $primaryKey = 'id';
-
     protected $modelName = '';
+    protected $modelNameCap = '';
     protected $viewName = '';
+    protected $routePrefix = '';
+    protected $routePrefixCap = '';
     protected $routeGroup = '';
     protected $userViewPath = '';
-
     protected $formHeadingHtml = '';
     protected $formBodyHtml = '';
     protected $formBodyHtmlForShowView = '';
+    protected $varName = '';
+    protected $viewTemplateDir = '';
+    protected $delimiter;
+
+    protected $vars = [
+        'formFields',
+        'formFieldsHtml',
+        'varName',
+        'crudName',
+        'crudNameCap',
+        'crudNameSingular',
+        'primaryKey',
+        'modelName',
+        'modelNameCap',
+        'viewName',
+        'routePrefix',
+        'routePrefixCap',
+        'routeGroup',
+        'formHeadingHtml',
+        'formBodyHtml',
+        'viewTemplateDir',
+        'formBodyHtmlForShowView'
+    ];
 
     // form type
     protected $typeLookup = [
@@ -49,31 +72,38 @@ class CrudViewCommand extends Command
         'email'     => 'email',
         'number'    => 'number',
         'integer'   => 'number',
+        'unsignedbiginteger' => 'number',
         'bigint'    => 'number',
         'tinyint'   => 'number',
         'date'      => 'date',
         'datetime'  => 'date',
         'timestamp' => 'date',
         'time'      => 'date',
+        'radio'     => 'radio',
         'boolean'   => 'radio',
         'enum'      => 'select',
         'select'    => 'select',
-        'file'    => 'file',
+        'file'      => 'file',
     ];
 
     public function __construct(){
         parent::__construct();
 
-        $this->viewDirectoryPath = config('crudgenerator.custom_template')
-                ? config('crudgenerator.path')
-                : dirname(__DIR__) . '/stubs/';
+
+
+        $this->delimiter = config('crudgenerator.custom_delimiter')
+                                        ? config('crudgenerator.custom_delimiter')
+                                        : ['%%', '%%'];
     }
 
     public function handle(){
-        $this->crudName = strtolower($this->argument('name')); // post
-        $this->crudNameCap = ucwords($this->crudName); // Post
+        $this->viewDirectoryPath =  dirname(__DIR__) . '/stubs/views/html/'; // ...src/stubs/views/html
+        $this->crudName = strtolower($this->argument('name')); // posts
+        $this->varName = lcfirst($this->argument('name')); // posts ucfirst()
+        $this->crudNameCap = ucwords($this->crudName); // Posts
         $this->crudNameSingular = Str::singular($this->crudName); // post
         $this->modelName = Str::singular($this->argument('name')); // Post
+        $this->modelNameCap = ucfirst($this->modelName); // Post
 
         // $this->primaryKey = $this->option('pk');
 
@@ -82,52 +112,74 @@ class CrudViewCommand extends Command
                                 ? $this->option('route-group') . '/'
                                 : $this->option('route-group');
 
+        $this->routePrefix = ($this->option('route-group'))
+                                ? $this->option('route-group')
+                                : '';
+        $this->routePrefixCap = ucfirst($this->routePrefix); // Admin
+
         $this->viewName = Str::snake($this->argument('name'), '-'); // post
 
         $viewDirectory = resource_path() . '/views/';
 
         if ($this->option('view-path')) {
-            $this->userViewPath = $this->option('view-path');
+            $this->userViewPath = $this->option('view-path');  // admin
             $path = $viewDirectory . $this->userViewPath . '/' . $this->viewName . '/'; // ...resources/views/admin/post
         } else {
             $path = $viewDirectory . $this->viewName . '/'; // ...resources/views/post
         }
 
+        // admin.post || post
+        $this->viewTemplateDir = isset($this->userViewPath)
+                                        ? $this->userViewPath . '.' . $this->viewName
+                                        : $this->viewName;
+
         if(!File::isDirectory($path)) {
             File::makeDirectory($path, 0755, true);
         }
 
-        // --fields = title#string;content#text
+        // --fields = title#string,body#text
         $fields = $this->option('fields');
         $fieldsArray = explode(';', $fields);
         // $fieldsArray = ['title#string','content#text']
 
         $this->formFields = [];
         $validations = $this->option('validations');
-        // --validations = title#required,unique:posts,max:255;content#required,max:255
+        // --validations = title#required,unique:posts,max:255;body#required,max:255
+
+        $foreignKeys = trim($this->option('foreign-keys')) != ''
+                            ? explode(',', $this->option('foreign-keys'))
+                            : [];
+        // user_id#id#users#cascade
+        // category_id#id#categories#cascade
+        $fk_field_arr = [];
+        foreach ($foreignKeys as $fk){
+            $fk_arr = explode('#', $fk);
+            array_push($fk_field_arr, $fk_arr[0]);
+        }
+        // user_id
+        // category_id
 
         if ($fields){
             $x = 0;
             foreach ($fieldsArray as $item) {
                 // $item => title#string
-                // $item => content#text
+                // $item => body#text
                 $itemArray = explode('#', $item);
-                $this->formFields[$x]['name'] = trim($itemArray[0]); // title, content
-                $this->formFields[$x]['type'] = trim($itemArray[1]); // string, text
-                $this->formFields[$x]['required'] = preg_match('/' . $itemArray[0] . '/', $validations) ? true : false;
 
-                if ($this->formFields[$x]['type'] == 'select' && isset($itemArray[2])) {
-                    $options = trim($itemArray[2]);
-                    $options = str_replace('options=', '', $options);
-                    $optionsArray = explode(',', $options);
+                if (!in_array($itemArray[0], $fk_field_arr)){
+                    $this->formFields[$x]['name'] = trim($itemArray[0]); // title, body
+                    $this->formFields[$x]['type'] = trim($itemArray[1]); // string, text
+                    $this->formFields[$x]['required'] = preg_match('/' . $itemArray[0] . '/', $validations) ? true : false;
 
-                    $commaSeparetedString = implode("', '", $optionsArray);
-                    $options = "['" . $commaSeparetedString . "']";
+                    if (($this->formFields[$x]['type'] === 'select' || $this->formFields[$x]['type'] === 'enum') && isset($itemArray[2])) {
+                        $options = trim($itemArray[2]);
+                        $options = str_replace('options=', '', $options);
+                        $this->formFields[$x]['options'] = $options;
+                    }
 
-                    $this->formFields[$x]['options'] = $options;
+                    $x++;
                 }
 
-                $x++;
             }
         }
 //        $formFields = [
@@ -162,51 +214,7 @@ class CrudViewCommand extends Command
             $this->formBodyHtmlForShowView .= '<td> {{ $%%crudNameSingular%%->' . $field_name . ' }} </td>';
         }
 
-        // create Template Files : index,create,edit,show
-        // index
-        $indexFile = $this->viewDirectoryPath . 'index.blade.stub';
-        $newIndexFile = $path.'index.blade.php';
-        if (!File::copy($indexFile, $newIndexFile)) {
-            echo "failed to copy $indexFile...\n";
-        } else {
-            $this->templateIndex($newIndexFile);
-        }
-
-        // form blade
-        $formFile = $this->viewDirectoryPath . 'form.blade.stub';
-        $newFormFile = $path . 'form.blade.php';
-        if (!File::copy($formFile, $newFormFile)) {
-            echo "failed to copy $formFile...\n";
-        } else {
-            $this->templateForm($newFormFile);
-        }
-
-        // create
-        $createFile = $this->viewDirectoryPath . 'create.blade.stub';
-        $newCreateFile = $path.'create.blade.php';
-        if (!File::copy($createFile, $newCreateFile)) {
-            echo "failed to copy $createFile...\n";
-        } else {
-            $this->templateCreate($newCreateFile);
-        }
-
-        // edit
-        $editFile = $this->viewDirectoryPath . 'edit.blade.stub';
-        $newEditFile = $path.'edit.blade.php';
-        if (!File::copy($editFile, $newEditFile)) {
-            echo "failed to copy $editFile...\n";
-        } else {
-            $this->templateEdit($newEditFile);
-        }
-
-        // show
-        $showFile = $this->viewDirectoryPath . 'show.blade.stub';
-        $newShowFile = $path.'show.blade.php';
-        if (!File::copy($showFile, $newShowFile)) {
-            echo "failed to copy $showFile...\n";
-        } else {
-            $this->templateShow($newShowFile);
-        }
+        $this->templateStubs($path);
 
         $this->info('View created successfully.');
     } // end handle()
@@ -248,111 +256,161 @@ class CrudViewCommand extends Command
         //    %%field%%
         // </div>;
 
-        $formGroup = str_replace('%%label%%', $label, $formGroupFile);
-        $formGroup = str_replace('%%itemName%%', $item['name'], $formGroup);
-        $formGroup = str_replace('%%field%%', $field, $formGroup);
+        $start = $this->delimiter[0];
+        $end = $this->delimiter[1];
+        $formGroup = str_replace($start . 'label' . $end, $label, $formGroupFile);
+        $formGroup = str_replace($start . 'itemName' . $end, $item['name'], $formGroup);
+        $formGroup = str_replace($start . 'field' . $end, $field, $formGroup);
+        // $formGroup = str_replace($start . 'crudNameSingular' . $end, $this->crudNameSingular, $formGroup);
 
         return $formGroup;
     }
 
     protected function createFormField($item){
+        $start = $this->delimiter[0];
+        $end = $this->delimiter[1];
+
         $form_type = $this->typeLookup[$item['type']];
-        $required = ($item['required'] === true) ? "required" : "";
+        $required = $item['required'] ? "required" : "";
 
         $markup = file_get_contents($this->viewDirectoryPath . 'form-fields/form-field.blade.stub');
         // <input type="%%fieldType%%" class="form-control" name="%%itemName%%" id="%%itemName%%" %%required%%>
-        $markup = str_replace('%%required%%', $required, $markup);
-        $markup = str_replace('%%fieldType%%', $form_type, $markup);
-        $markup = str_replace('%%itemName%%', $item['name'], $markup);
+        // $markup = str_replace('%%required%%', $required, $markup);
+        // $markup = str_replace('%%fieldType%%', $form_type, $markup);
+        // $markup = str_replace('%%itemName%%', $item['name'], $markup);
+
+        $markup = str_replace($start . 'required' . $end, $required, $markup);
+        $markup = str_replace($start . 'fieldType' . $end, $form_type, $markup);
+        $markup = str_replace($start . 'itemName' . $end, $item['name'], $markup);
+        $markup = str_replace($start . 'crudNameSingular' . $end, $this->crudNameSingular, $markup);
 
         return $this->wrapField($item,$markup);
     }
 
     protected function createTextareaField($item){
-        $required = ($item['required'] === true) ? "required" : "";
+        $required = $item['required'] ? "required" : "";
+
+        $start = $this->delimiter[0]; // %%
+        $end = $this->delimiter[1]; // %%
 
         $markup = file_get_contents($this->viewDirectoryPath . 'form-fields/textarea-field.blade.stub');
-        $markup = str_replace('%%required%%', $required, $markup);
-        $markup = str_replace('%%itemName%%', $item['name'], $markup);
+        $markup = str_replace($start . 'required' . $end, $required, $markup);
+        $markup = str_replace($start . 'itemName' . $end, $item['name'], $markup);
+        $markup = str_replace($start . 'crudNameSingular' . $end, $this->crudNameSingular, $markup);
 
         return $this->wrapField($item, $markup);
     }
 
     protected function createRadioField($item){
+        $start = $this->delimiter[0];
+        $end = $this->delimiter[1];
+
         $markup = file_get_contents($this->viewDirectoryPath . 'form-fields/radio-field.blade.stub');
-        $markup = str_replace('%%itemName%%', $item['name'], $markup);
+        $markup = str_replace($start . 'itemName' . $end, $item['name'], $markup);
+        $markup = str_replace($start . 'crudNameSingular' . $end, $this->crudNameSingular, $markup);
 
         return $markup;
     }
 
     protected function createSelectField($item){
-        $required = ($item['required'] === true) ? ", 'required' => 'required'" : "";
+        $required = $item['required'] ? 'required' : '';
 
-        $options = '';
-        foreach ($item['options'] as $option){
-            $options .= "<option value='0'>".$option."</option>";
-        }
+        $start = $this->delimiter[0];
+        $end = $this->delimiter[1];
+
+        // $item['options'] = str_replace('+', ',', $item['options']);
+        // $item['options'] = str_replace(',', '","', $item['options']);
+        // $item['options'] = str_replace(':', '":"', $item['options']);
+        // $item['options'] = str_replace('{', '{"', $item['options']);
+        // $item['options'] = str_replace('}', '"}', $item['options']);
 
         $markup = file_get_contents($this->viewDirectoryPath . 'form-fields/select-field.blade.stub');
-        $markup = str_replace('%%required%%', $required, $markup);
-        $markup = str_replace('%%itemName%%', $item['name'], $markup);
-        $markup = str_replace('%%options%%', $options, $markup);
+        $markup = str_replace($start . 'required' . $end, $required, $markup);
+        $markup = str_replace($start . 'itemName' . $end, $item['name'], $markup);
+        $markup = str_replace($start . 'options' . $end, $item['options'], $markup);
+        $markup = str_replace($start . 'crudNameSingular' . $end, $this->crudNameSingular, $markup);
 
         return $markup;
     }
 
-    // index.blade
-    public function templateIndex($newIndexFile){
-        file_put_contents($newIndexFile, str_replace('%%formHeadingHtml%%', $this->formHeadingHtml, file_get_contents($newIndexFile)));
-        file_put_contents($newIndexFile, str_replace('%%formBodyHtml%%', $this->formBodyHtml, file_get_contents($newIndexFile)));
-        file_put_contents($newIndexFile, str_replace('%%crudName%%', $this->crudName, file_get_contents($newIndexFile)));
-        file_put_contents($newIndexFile, str_replace('%%crudNameCap%%', $this->crudNameCap, file_get_contents($newIndexFile)));
-        file_put_contents($newIndexFile, str_replace('%%modelName%%', $this->modelName, file_get_contents($newIndexFile)));
-        file_put_contents($newIndexFile, str_replace('%%viewName%%', $this->viewName, file_get_contents($newIndexFile)));
-        file_put_contents($newIndexFile, str_replace('%%routeGroup%%', $this->routeGroup, file_get_contents($newIndexFile)));
-    }
-
-    public function templateForm($newFormFile){
-        file_put_contents($newFormFile, str_replace('%%formFieldsHtml%%', $this->formFieldsHtml, file_get_contents($newFormFile)));
+    private function defaultTemplating(){
+        return [
+            'index' => [
+                'formHeadingHtml',
+                'formBodyHtml',
+                'crudName',
+                'crudNameCap',
+                'modelName',
+                'viewName',
+                'routeGroup',
+                'primaryKey'
+            ],
+            'form' => ['formFieldsHtml'],
+            'create' => [
+                'crudName',
+                'crudNameCap',
+                'modelName',
+                'modelNameCap',
+                'viewName',
+                'routeGroup',
+                'viewTemplateDir',
+            ],
+            'edit' => [
+                'crudName',
+                'crudNameSingular',
+                'crudNameCap',
+                'modelName',
+                'modelNameCap',
+                'viewName',
+                'routeGroup',
+                'primaryKey',
+                'viewTemplateDir'
+            ],
+            'show' => [
+                'formHeadingHtml',
+                'formBodyHtml',
+                'formBodyHtmlForShowView',
+                'crudName',
+                'crudNameSingular',
+                'crudNameCap',
+                'modelName',
+                'viewName',
+                'routeGroup',
+                'primaryKey'
+            ]
+        ];
     }
 
     // create.blade
-    public function templateCreate($newCreateFile) {
-        $viewTemplateDir = isset($this->userViewPath)
-                                ? $this->userViewPath . '.' . $this->viewName
-                                : $this->viewName;
-        file_put_contents($newCreateFile, str_replace('%%crudName%%',$this->crudName,file_get_contents($newCreateFile)));
-        file_put_contents($newCreateFile, str_replace('%%crudNameCap%%',$this->crudNameCap,file_get_contents($newCreateFile)));
-        file_put_contents($newCreateFile, str_replace('%%modelName%%',$this->modelName,file_get_contents($newCreateFile)));
-        file_put_contents($newCreateFile, str_replace('%%viewName%%',$this->viewName,file_get_contents($newCreateFile)));
-        file_put_contents($newCreateFile, str_replace('%%routeGroup%%',$this->routeGroup,file_get_contents($newCreateFile)));
-        file_put_contents($newCreateFile, str_replace('%%viewTemplateDir%%',$viewTemplateDir,file_get_contents($newCreateFile)));
+    protected function templateStubs($path){
+        // path => ...resources/views/admin/post
+        // $this->viewDirectoryPath => ...src/stubs/views/html
+        $dynamicViewTemplate = config('crudgenerator.dynamic_view_template')
+                                            ? config('crudgenerator.dynamic_view_template')
+                                            : $this->defaultTemplating();
+
+        foreach($dynamicViewTemplate as $name => $vars){
+            $file = $this->viewDirectoryPath . $name . '.blade.stub';
+            $newFile = $path . $name . '.blade.php';
+            if (!File::copy($file, $newFile)) {
+                echo "failed to copy $file...\n";
+            } else {
+                $this->templateVars($newFile, $vars);
+            }
+        }
     }
 
     // edit.blade
-    public function templateEdit($newEditFile) {
-        $viewTemplateDir = isset($this->userViewPath)
-                                    ? $this->userViewPath . '.' . $this->viewName
-                                    : $this->viewName;
-        file_put_contents($newEditFile, str_replace('%%crudName%%',$this->crudName,file_get_contents($newEditFile)));
-        file_put_contents($newEditFile, str_replace('%%crudNameSingular%%',$this->crudNameSingular,file_get_contents($newEditFile)));
-        file_put_contents($newEditFile, str_replace('%%crudNameCap%%',$this->crudNameCap,file_get_contents($newEditFile)));
-        file_put_contents($newEditFile, str_replace('%%modelName%%',$this->modelName,file_get_contents($newEditFile)));
-        file_put_contents($newEditFile, str_replace('%%viewName%%',$this->viewName,file_get_contents($newEditFile)));
-        file_put_contents($newEditFile, str_replace('%%routeGroup%%',$this->routeGroup,file_get_contents($newEditFile)));
-        file_put_contents($newEditFile, str_replace('%%viewTemplateDir%%',$viewTemplateDir,file_get_contents($newEditFile)));
-    }
+    protected function templateVars($file, $vars) {
+        $start =  $this->delimiter[0];
+        $end   =  $this->delimiter[1];
 
-    // show.blade
-    public function templateShow($newShowFile){
-        file_put_contents($newShowFile, str_replace('%%formHeadingHtml%%', $this->formHeadingHtml, file_get_contents($newShowFile)));
-        file_put_contents($newShowFile, str_replace('%%formBodyHtmlForShowView%%', $this->formBodyHtmlForShowView, file_get_contents($newShowFile)));
-        file_put_contents($newShowFile, str_replace('%%crudName%%', $this->crudName, file_get_contents($newShowFile)));
-        file_put_contents($newShowFile, str_replace('%%crudNameSingular%%',$this->crudNameSingular,file_get_contents($newShowFile)));
-        file_put_contents($newShowFile, str_replace('%%crudNameCap%%',$this->crudNameCap,file_get_contents($newShowFile)));
-        file_put_contents($newShowFile, str_replace('%%modelName%%',$this->modelName,file_get_contents($newShowFile)));
-        file_put_contents($newShowFile, str_replace('%%viewName%%',$this->viewName,file_get_contents($newShowFile)));
-        file_put_contents($newShowFile, str_replace('%%routeGroup%%',$this->routeGroup,file_get_contents($newShowFile)));
+        foreach($vars as $var){
+            $replace = $start . $var . $end;
+            if(in_array($var, $this->vars)){
+                File::put($file, str_replace($replace, $this->$var, File::get($file)));
+            }
+        }
     }
 
 }

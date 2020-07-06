@@ -9,20 +9,30 @@ class CrudServiceProvider extends ServiceProvider
 
     public function register()
     {
-        // migrate => add bigInteger
-        // $table->bigInteger('user_id')->unsigned();
 
         // add related data in controller
         // $post->user_id = Auth()->id
 
-        // php artisan crud:generate Post
-            // --fields=user_id#bigint;title#string;content#text;status#boolean
-            // --view-path=admin
-            // --controller-namespace=Admin
-            // --route-group=admin
-            // --validations=title#required,unique:posts,max:255;content#required,max:255
-            // --relationships=user#belongsTo#App\User,comments#hasMany#App\Comment
-            // --foreign-keys=comment_id#id#comments#cascade
+        /*
+            php artisan crud:generate Posts
+                --fields=user_id#unsignedbiginteger;title#string;body#text#nullable;status#boolean;categories#select#options={software:Software,hardware:Hardware,notebok:Notebook,tablet:Tablet}
+                --fields_from_file
+                --validations=title#required,unique:posts,max:123;body#required,max:255;status#required
+                --controller-namespace=Admin
+                --model-namespace
+                --pk=id
+                --pagination=10
+                --indexes=title
+                --foreign-keys=user_id#id#users#cascade
+                --relationships=user#belongsTo#App\User,comments#hasMany#App\Comment
+                --route=yes
+                --route-group=admin
+                --view-path=admin
+                --localize=no
+                --locales=en
+                --soft-deletes=yes
+         */
+
         $this->commands(
             'Oy\Commands\CrudCommand',
             'Oy\Commands\CrudControllerCommand',

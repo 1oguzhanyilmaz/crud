@@ -1,0 +1,3 @@
+<div class="checkbox">
+    <label><input type="checkbox" name="%%itemName%%" id="%%itemName%%" value="%%value%%"> {{%%label%%}}</label>
+</div>

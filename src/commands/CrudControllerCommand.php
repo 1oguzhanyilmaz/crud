@@ -15,8 +15,8 @@ class CrudControllerCommand extends GeneratorCommand
                                 {--model-namespace= : The namespace of the Model.}
                                 {--controller-namespace= : The namespace of the Model.}
                                 {--view-path= : The name of the view path.}
-                                {--fields= : Fields name for the form & migration.}
-                                {--validations= : Validation details for the fields.}
+                                {--fields= : Field names for the form & migration.}
+                                {--validations= : Validation rules for the fields.}
                                 {--route-group= : Prefix of the route group.}
                                 {--pagination=15 : The amount of models per page for index pages.}
                                 {--force : Overwrite controller.}';
@@ -25,9 +25,7 @@ class CrudControllerCommand extends GeneratorCommand
     protected $type = 'Controller';
 
     protected function getStub(){
-        return config('crudgenerator.custom_template')
-                    ? config('crudgenerator.path') . '/controller.stub'
-                    : dirname(__DIR__).'/stubs/controller.stub';
+        return dirname(__DIR__).'/stubs/controller.stub';
 	}
 
     protected function getDefaultNamespace($rootNamespace){
@@ -40,31 +38,38 @@ class CrudControllerCommand extends GeneratorCommand
         if($this->option('force')){
             return false;
         }
-        return $this->files->exists($this->getPath($this->qualifyClass($rawName)));
+        return parent::alreadyExists($rawName);
     }
 
     protected function buildClass($name){
         $stub = $this->files->get($this->getStub()); // get controller stub
 
+        // admin.
         $viewPath = $this->option('view-path')
                                 ? $this->option('view-path') . '.'
                                 : '';
 
-		$crudName = strtolower($this->option('crud-name'));
-        $crudNameSingular = Str::singular($crudName);
-        $modelName = $this->option('model-name');
-        $modelNamespace = $this->option('model-namespace');
+		$crudName = strtolower($this->option('crud-name')); // posts
+        $crudNameSingular = Str::singular($crudName); // post
+        $modelName = $this->option('model-name'); // Post
+        $modelNamespace = $this->option('model-namespace'); // ""
 
+        // admin/
         $routeGroup = ($this->option('route-group'))
                             ? $this->option('route-group') . '/'
                             : '';
 
-        $perPage = intval($this->option('pagination'));
+        // admin
+        $routePrefix = ($this->option('route-group'))
+                            ? $this->option('route-group')
+                            : '';
+        $routePrefixCap = ucfirst($routePrefix); // Admin
 
-        $viewName = Str::snake($this->option('crud-name'), '-');
-        $fields = $this->option('fields');
-        $validations = rtrim($this->option('validations'), ';');
-        // --validations = title#required|unique:posts|max:123; content#required|max:255
+        $perPage = intval($this->option('pagination')); // 10
+
+        $viewName = Str::snake($this->option('crud-name'), '-'); // posts
+        $fields = $this->option('fields'); // user_id#bigint,title#string,body#text,status#boolean
+        $validations = rtrim($this->option('validations'), ';'); // title#required|unique:posts|max:123;content#required|max:255;status#boolean
 
         $validationRules = '';
         if (trim($validations) != '') {
@@ -72,56 +77,56 @@ class CrudControllerCommand extends GeneratorCommand
 
             $rules = explode(';', $validations);
             foreach ($rules as $v){
+                // title#required|unique:posts|max:123
+                // content#required|max:255
+                // status#boolean
                 if (trim($v) == ''){
                     continue;
                 }
 
                 // extract field name and args
                 $parts = explode('#', $v);
-                $fieldName = trim($parts[0]);
-                $rules = trim($parts[1]);
+                $fieldName = trim($parts[0]); // title
+                $rules = trim($parts[1]); // required|unique:posts|max:123
                 $rules = str_replace(',','|',$rules);
                 $validationRules .= "\n\t\t\t'$fieldName' => '$rules',";
             }
             $validationRules = substr($validationRules, 0, -1); // remove the last comma
             $validationRules .= "\n\t\t]);";
         }
-//        $this->validate($request, [\n
+//        $request->validate([\n
 //            'title' => 'required|unique:posts|max:123',
 //            'content' => 'required|max:255'
+//            'status' => 'required',
 //        ]);
 
         $snippet = "
-        if (\$request->hasFile('{{fieldName}}')) {
-            \$uploadPath = public_path('/uploads/');
-
-            \$extension = \$request->file('{{fieldName}}')->getClientOriginalExtension();
-            \$fileName = rand(11111, 99999) . '.' . \$extension;
-
-            \$request->file('{{fieldName}}')->move(\$uploadPath, \$fileName);
-            \$requestData['{{fieldName}}'] = \$fileName;
-        }";
+            if (\$request->hasFile('{{fieldName}}')) {
+                \$requestData['{{fieldName}}'] = \$request->file('{{fieldName}}')->store('uploads', 'public');
+            }";
 
         $fieldsArray = explode(';', $fields);
         $fileSnippet = '';
         $whereSnippet = '';
-
         if ($fields) {
             foreach ($fieldsArray as $index => $item) {
+                // $item => user_id#bigint
                 // $item => title#string
-                // $item => content#text
+                // $item => body#text
+                // $item => status#boolean
                 $itemArray = explode('#', $item);
 
                 if (trim($itemArray[1]) == 'file') {
-                    $fileSnippet .= "\n\n" . str_replace('{{fieldName}}', trim($itemArray[0]), $snippet) . "\n";
+                    $fileSnippet .= str_replace('{{fieldName}}', trim($itemArray[0]), $snippet) . "\n";
                 }
 
                 $fieldName = trim($itemArray[0]);
 
                 $whereSnippet .= ($index == 0)
-                                    ? "where('$fieldName', 'LIKE', \"%\$keyword%\")" . "\n\t\t\t\t"
-                                    : "->orWhere('$fieldName', 'LIKE', \"%\$keyword%\")" . "\n\t\t\t\t";
+                                        ? "where('$fieldName', 'LIKE', \"%\$keyword%\")" . "\n"
+                                        : "->orWhere('$fieldName', 'LIKE', \"%\$keyword%\")" . "\n";
             }
+            $whereSnippet .= "->";
         }
 
         return $this->replaceNamespace($stub, $name)
@@ -130,8 +135,11 @@ class CrudControllerCommand extends GeneratorCommand
                     ->replaceCrudName($stub, $crudName)
                     ->replaceCrudNameSingular($stub, $crudNameSingular)
                     ->replaceModelName($stub, $modelName)
+                    ->replaceModelNamespaceSegments($stub, $modelNamespace)
                     ->replaceModelNamespace($stub, $modelNamespace)
                     ->replaceRouteGroup($stub, $routeGroup)
+                    ->replaceRoutePrefix($stub, $routePrefix)
+                    ->replaceRoutePrefixCap($stub, $routePrefixCap)
                     ->replaceValidationRules($stub, $validationRules)
                     ->replacePaginationNumber($stub, $perPage)
                     ->replaceFileSnippet($stub, $fileSnippet)
@@ -169,8 +177,29 @@ class CrudControllerCommand extends GeneratorCommand
         return $this;
     }
 
+    protected function replaceModelNamespaceSegments(&$stub, $modelNamespace){
+        $modelSegments = explode('\\', $modelNamespace);
+        foreach($modelSegments as $key => $segment){
+            $stub = str_replace('{{modelNamespace[' . $key . ']}}', $segment, $stub);
+        }
+
+        $stub = preg_replace('{{modelNamespace\[\d*\]}}', '', $stub);
+
+        return $this;
+    }
+
     protected function replaceRouteGroup(&$stub, $routeGroup){
         $stub = str_replace('{{routeGroup}}', $routeGroup, $stub);
+        return $this;
+    }
+
+    protected function replaceRoutePrefix(&$stub, $routePrefix){
+        $stub = str_replace('{{routePrefix}}', $routePrefix, $stub);
+        return $this;
+    }
+
+    protected function replaceRoutePrefixCap(&$stub, $routePrefixCap){
+        $stub = str_replace('{{routePrefixCap}}', $routePrefixCap, $stub);
         return $this;
     }
 

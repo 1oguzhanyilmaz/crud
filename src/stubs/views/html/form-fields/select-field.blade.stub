@@ -1,0 +1,8 @@
+<div class="form-group">
+    <label for="%%itemName%%">Select list (select one):</label>
+    <select class="form-control" %%required%% name="%%itemName%%" id="%%itemName%%">
+        @foreach (json_decode('%%options%%', true) as $optionKey => $optionValue)
+            <option value="{{ $optionKey }}" {{ (isset($%%crudNameSingular%%->%%itemName%%) && $%%crudNameSingular%%->%%itemName%% == $optionKey) ? 'selected' : ''}}>{{ $optionValue }}</option>
+        @endforeach
+    </select>
+</div>

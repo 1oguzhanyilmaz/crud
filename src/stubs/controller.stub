@@ -1,12 +1,10 @@
 <?php
 namespace DummyNamespace;
 
-use DummyRootNamespaceHttp\Requests;
 use DummyRootNamespaceHttp\Controllers\Controller;
 
 use DummyRootNamespace{{modelNamespace}}{{modelName}};
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Session;
 use Carbon\Carbon;
 
 class DummyClass extends Controller {
@@ -16,10 +14,9 @@ class DummyClass extends Controller {
         $perPage = {{pagination}};
 
         if (!empty($keyword)) {
-            ${{crudName}} = {{modelName}}::{{whereSnippet}}
-                ->paginate($perPage);
+            ${{crudName}} = {{modelName}}::{{whereSnippet}}latest()->paginate($perPage);
         } else {
-            ${{crudName}} = {{modelName}}::paginate($perPage);
+            ${{crudName}} = {{modelName}}::latest()->paginate($perPage);
         }
 		return view('{{viewPath}}{{viewName}}.index', compact('{{crudName}}'));
 	}
@@ -36,9 +33,7 @@ class DummyClass extends Controller {
         {{fileSnippet}}
         {{modelName}}::create($requestData);
 
-        Session::flash('flash_message', '{{modelName}} successfully added!');
-
-        return redirect('{{routeGroup}}{{viewName}}');
+        return redirect('{{routeGroup}}{{viewName}}')->with('flash_message', '{{modelName}} added!');
     }
 
     public function show($id)
@@ -53,7 +48,7 @@ class DummyClass extends Controller {
         return view('{{viewPath}}{{viewName}}.edit', compact('{{crudNameSingular}}'));
     }
 
-    public function update($id, Request $request)
+    public function update(Request $request, $id)
     {
         {{validationRules}}
         $requestData = $request->all();
@@ -61,16 +56,13 @@ class DummyClass extends Controller {
         ${{crudNameSingular}} = {{modelName}}::findOrFail($id);
         ${{crudNameSingular}}->update($requestData);
 
-        Session::flash('flash_message', '{{modelName}} successfully updated!');
-
-        return redirect('{{routeGroup}}{{viewName}}');
+        return redirect('{{routeGroup}}{{viewName}}')->with('flash_message', '{{modelName}} updated!');
     }
 
     public function destroy($id)
     {
         {{modelName}}::destroy($id);
-        Session::flash('flash_message', '{{modelName}} successfully deleted!');
 
-        return redirect('{{routeGroup}}{{viewName}}');
+        return redirect('{{routeGroup}}{{viewName}}')->with('flash_message', '{{modelName}} deleted!');
     }
 }

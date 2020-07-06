@@ -13,15 +13,14 @@ class CrudModelCommand extends GeneratorCommand
                                 {--table= : The name of the table.}
                                 {--fillable= : The names of the fillable columns.}
                                 {--relationships= : The relationships for the model}
-                                {--pk=id : The name of the primary key.}';
+                                {--pk=id : The name of the primary key.}
+                                {--soft-deletes=no : Include soft deletes fields.}';
 
     protected $description = 'Command Crud Model description';
     protected $type = 'Model';
 
     protected function getStub(){
-        return config('crudgenerator.custom_template')
-                    ? config('crudgenerator.path') . '/model.stub'
-                    : dirname(__DIR__).'/stubs/model.stub';
+        return dirname(__DIR__).'/stubs/model.stub';
     }
 
     protected function getDefaultNamespace($rootNamespace){
@@ -31,13 +30,21 @@ class CrudModelCommand extends GeneratorCommand
     protected function buildClass($name){
         $stub = $this->files->get($this->getStub());
 
+        // posts
         $table = $this->option('table')
                             ? $this->option('table')
                             : $this->argument('name');
-        $fillable = $this->option('fillable');
+
+        $fillable = $this->option('fillable'); // ['user_id','title','body','status']
+
+        // user#belongsTo#App\User
+        // comments#hasMany#App\Comment
         $relationships = trim($this->option('relationships')) != ''
                                 ? explode(',', trim($this->option('relationships')))
                                 : [];
+
+        $softDeletes = $this->option('soft-deletes'); // no
+
 //        $primaryKey = $this->option('pk');
 //        if(!empty($primaryKey)) {
 //            $primaryKey = "protected \$primaryKey = '$primaryKey'";
@@ -45,10 +52,10 @@ class CrudModelCommand extends GeneratorCommand
 
         $ret = $this->replaceNamespace($stub, $name)
                     ->replaceTable($stub, $table)
-                    ->replaceFillable($stub, $fillable);
+                    ->replaceFillable($stub, $fillable)
+                    ->replaceSoftDelete($stub, $softDeletes);
 
         foreach ($relationships as $rel){
-            // user # belongsTo # App\User:foreign_key:owner_key
             $parts = explode('#',$rel);
             // parts[0] = user
             // parts[1] = belongsTo
@@ -72,6 +79,7 @@ class CrudModelCommand extends GeneratorCommand
             }
             $argsString = substr($argsString, 0, -2);   // remove last comma
             //  $argsString = 'App\User', 'foreign_key', 'owner_key'
+
             $ret->createRelationshipFunction($stub, trim($parts[0]), trim($parts[1]), $argsString);
         }
 
@@ -90,14 +98,27 @@ class CrudModelCommand extends GeneratorCommand
         return $this;
     }
 
+    protected function replaceSoftDelete(&$stub, $replaceSoftDelete){
+        if ($replaceSoftDelete == 'yes') {
+            $stub = str_replace('{{softDeletes}}', "use SoftDeletes;\n    ", $stub);
+            $stub = str_replace('{{useSoftDeletes}}', "use Illuminate\Database\Eloquent\SoftDeletes;\n", $stub);
+        } else {
+            $stub = str_replace('{{softDeletes}}', '', $stub);
+            $stub = str_replace('{{useSoftDeletes}}', '', $stub);
+        }
+
+        return $this;
+    }
+
     protected function createRelationshipFunction(&$stub, $relationshipName, $relationshipType, $argsString){
-        $func = "public function " . $relationshipName . "()\n\t{\n\t\t"
+        $tabIndent = '    ';
+
+        $func = "public function " . $relationshipName . "()\n" . $tabIndent . "{\n" . $tabIndent . $tabIndent
             . "return \$this->" . $relationshipType . "(" . $argsString . ");"
-            . "\n\t}";
+            . "\n" . $tabIndent . "}";
 
         $str = '{{relationships}}';
-        $stub = str_replace($str, $func . "\n\t$str", $stub);
-
+        $stub = str_replace($str, $func . "\n" . $tabIndent . $str, $stub);
         return $this;
     }
 

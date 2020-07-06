@@ -1,7 +1,0 @@
-%%formFieldsHtml%%
-
-<div class="form-group">
-    <button type="submit" class="btn btn-primary-outline">
-        <?php echo (isset($submitButtonText)) ? $submitButtonText : 'Create'; ?>
-    </button>
-</div>

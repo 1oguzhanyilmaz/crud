@@ -5,16 +5,15 @@ namespace Oy\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Symfony\Component\Console\Input\InputOption;
 
 class CrudCommand extends Command
 {
 
     protected $signature = 'crud:generate
                                 {name : The name of the Crud.}
-                                {--fields= : Fields name for the form & migration.}
+                                {--fields= : Field names for the form & migration.}
                                 {--fields_from_file= : Fields from a json file.}
-                                {--validations= : Validation details for the fields.}
+                                {--validations= : Validation rules for the fields.}
                                 {--controller-namespace= : Namespace of the controller.}
                                 {--model-namespace= : Namespace of the model inside "app" dir}
                                 {--pk=id : The name of the primary key.}
@@ -26,15 +25,8 @@ class CrudCommand extends Command
                                 {--route-group= : Prefix of the route group.}
                                 {--view-path= : The name of the view path.}
                                 {--localize=no : Allow localize? yes|no. }
-                                {--locales=en : Locales}';
-
-    // php artisan crud:generate Posts
-        // --fields='title#string; content#text; category#select#options={"technology": "Technology", "tips": "Tips", "health": "Health"}'
-        // --view-path=admin
-        // --controller-namespace=Admin
-        // --route-group=admin
-        // --form-helper=html
-
+                                {--locales=en : Locales language}
+                                {--soft-deletes=no : Include soft deletes fields.}';
 
     protected $description = 'Command description';
     protected $routeName = '';
@@ -70,6 +62,11 @@ class CrudCommand extends Command
 
         if ($this->option('fields_from_file')) {
             $fields = $this->processJSONFields($this->option('fields_from_file'));
+        }else{
+            $fields = str_replace(',', '","', $fields);
+            $fields = str_replace(':', '":"', $fields);
+            $fields = str_replace('{', '{"', $fields);
+            $fields = str_replace('}', '"}', $fields);
         }
 
         $primaryKey = $this->option('pk');
@@ -77,8 +74,28 @@ class CrudCommand extends Command
 
         $foreignKeys = $this->option('foreign-keys');
 
+        if ($this->option('fields_from_file')) {
+            $foreignKeys = $this->processJSONForeignKeys($this->option('fields_from_file'));
+        }
+
+        $localize = $this->option('localize');
+        $locales = $this->option('locales');
+
+        $indexes = $this->option('indexes'); // null by default
+        $relationships = $this->option('relationships'); // null by default
+        if ($this->option('fields_from_file')) {
+            $relationships = $this->processJSONRelationships($this->option('fields_from_file'));
+        }
+
+        $validations = trim($this->option('validations')); // null by default
+        if ($this->option('fields_from_file')) {
+            $validations = $this->processJSONValidations($this->option('fields_from_file'));
+        }
+
+        $softDeletes = $this->option('soft-deletes');
         $fieldsArray = explode(';', $fields);
         $fillableArray = [];
+        $migrationFields = '';
 
         foreach ($fieldsArray as $item) {
             // $fieldsArray[0] = item = 'title#string#required'
@@ -87,6 +104,14 @@ class CrudCommand extends Command
 
             $temp_arr = explode('#', trim($item));
             $fillableArray[] = $temp_arr[0];
+            $modifier = !empty($temp_arr[2])
+                                ? $temp_arr[2]
+                                : '';
+
+            $migrationFields .= $temp_arr[0] . '#' . $temp_arr[1];
+            $migrationFields .= '#' . $modifier;
+            $migrationFields .= ';';
+            // Process migration fields
         }
         // $fillableArray[0]=title
         // $fillableArray[1]=content
@@ -95,13 +120,6 @@ class CrudCommand extends Command
         $comma_separeted_str = implode("', '", $fillableArray);
         $fillable = "['" . $comma_separeted_str .  "']";
         // $fillable = "['title','content','status']"
-
-        $localize = $this->option('localize');
-        $locales = $this->option('locales');
-
-        $indexes = $this->option('indexes'); // null by default
-        $relationships = $this->option('relationships'); // null by default
-        $validations = trim($this->option('validations')); // null by default
 
         $this->call('crud:controller', [
             'name' => $controllerNamespace . $name . 'Controller',
@@ -121,16 +139,18 @@ class CrudCommand extends Command
             '--fillable' => $fillable,
             '--table' => $tableName,
             '--pk' => $primaryKey,
-            '--relationships' => $relationships
+            '--relationships' => $relationships,
+            '--soft-deletes' => $softDeletes
         ]);
-         // dd('Model Created');
+        // dd('Model Created');
 
         $this->call('crud:migration', [
             'name' => $migrationName,
-            '--schema' => $fields,
+            '--schema' => $migrationFields,
             '--pk' => $primaryKey,
             '--indexes' => $indexes,
-            '--foreign-keys' => $foreignKeys
+            '--foreign-keys' => $foreignKeys,
+            '--soft-deletes' => $softDeletes
         ]);
         // dd('Migration Created');
 
@@ -140,8 +160,9 @@ class CrudCommand extends Command
             '--validations' => $validations,
             '--view-path' => $viewPath,
             '--route-group' => $routeGroup,
+            '--pk' => $primaryKey,
             '--localize' => $localize,
-            '--pk' => $primaryKey
+            '--foreign-keys' => $foreignKeys,
         ]);
         // dd('View Created');
 
@@ -169,31 +190,92 @@ class CrudCommand extends Command
 
         }
 
-        // File::append( base_path('routes/web.php') , "\nRoute::resource('" . strtolower($name) . "','" . $name . "Controller');" );
-
         // dd('dont migrate');
 
-        // migrate
        $this->call('migrate');
 
     }
 
     protected function processJSONFields($file){
         $json = File::get($file);
-        $fields = json_decode($json);
+        $fields = json_decode($json, true);
 
         $fieldsString = '';
-        foreach ($fields->fields as $field) {
-            if ($field->type == 'select') {
-                $fieldsString .= $field->name . '#' . $field->type . '#options=' . implode(',', $field->options) . ';';
+        foreach ($fields['fields'] as $field) {
+            if ($field['type'] === 'select' || $field['type'] === 'enum') {
+                $fieldsString .= $field['name'] . '#' . $field['type'] . '#options=' . json_encode($field['options']) . ';';
             } else {
-                $fieldsString .= $field->name . '#' . $field->type . ';';
+                $fieldsString .= $field['name'] . '#' . $field['type'] . ';';
             }
         }
 
         $fieldsString = rtrim($fieldsString, ';');
 
         return $fieldsString;
+    }
+
+    protected function processJSONForeignKeys($file){
+        $json = File::get($file);
+        $fields = json_decode($json, true);
+
+        if (!array_key_exists('foreign_keys', $fields)) {
+            return '';
+        }
+
+        $foreignKeysString = '';
+        foreach ($fields['foreign_keys'] as $foreign_key) {
+            $foreignKeysString .= $foreign_key['column'] . '#' . $foreign_key['references'] . '#' . $foreign_key['on'];
+
+            if (array_key_exists('onDelete', $foreign_key)) {
+                $foreignKeysString .= '#' . $foreign_key['onDelete'];
+            }
+
+            if (array_key_exists('onUpdate', $foreign_key)) {
+                $foreignKeysString .= '#' . $foreign_key['onUpdate'];
+            }
+
+            $foreignKeysString .= ',';
+        }
+
+        $foreignKeysString = rtrim($foreignKeysString, ',');
+
+        return $foreignKeysString;
+    }
+
+    protected function processJSONRelationships($file){
+        $json = File::get($file);
+        $fields = json_decode($json, true);
+
+        if (!array_key_exists('relationships', $fields)) {
+            return '';
+        }
+
+        $relationsString = '';
+        foreach ($fields['relationships'] as $relation) {
+            $relationsString .= $relation['name'] . '#' . $relation['type'] . '#' . $relation['class'] . ';';
+        }
+
+        $relationsString = rtrim($relationsString, ';');
+
+        return $relationsString;
+    }
+
+    protected function processJSONValidations($file){
+        $json = File::get($file);
+        $fields = json_decode($json, true);
+
+        if (!array_key_exists('validations', $fields)) {
+            return '';
+        }
+
+        $validationsString = '';
+        foreach ($fields['validations'] as $validation) {
+            $validationsString .= $validation['field'] . '#' . $validation['rules'] . ';';
+        }
+
+        $validationsString = rtrim($validationsString, ';');
+
+        return $validationsString;
     }
 
     protected function addRoutes() {

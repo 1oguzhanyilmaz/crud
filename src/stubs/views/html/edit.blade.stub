@@ -8,15 +8,15 @@
             @include('admin.sidebar')
 
             <div class="col-md-9">
-                <div class="panel panel-default">
-                    <div class="panel-heading">Edit %%modelName%% #{{ $%%crudNameSingular%%->id }}</div>
-                    <div class="panel-body">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6>Edit %%modelName%% #{{ $%%crudNameSingular%%->id }}</h6>
 
-                        <a href="{{ url('/%%routeGroup%%%%viewName%%') }}" title="Back">
-                            <button class="btn btn-warning btn-xs"><i class="fa fa-arrow-left" aria-hidden="true"></i> Back</button>
+                        <a href="{{ url('/%%routeGroup%%%%viewName%%') }}" title="Back" class="btn btn-warning btn-sm">
+                            <i class="fa fa-arrow-left" aria-hidden="true"></i> Back
                         </a>
-                        <br />
-                        <br />
+                    </div>
+                    <div class="card-body">
 
                         @if ($errors->any())
                             <ul class="alert alert-danger">
@@ -30,7 +30,7 @@
                             @method('PATCH')
                             @csrf
 
-                            @include ('%%viewTemplateDir%%.form', ['submitButtonText' => 'Update'])
+                            @include ('%%viewTemplateDir%%.form', ['formMode' => 'edit'])
 
                         </form>
 
